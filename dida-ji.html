@@ -1,0 +1,1824 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#FDF6E3" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath fill='%2363B3ED' d='M32 4C22 18 14 28 14 40a18 18 0 0 0 36 0C50 28 42 18 32 4Z'/%3E%3Cpath fill='%23fff' opacity='.85' d='M25 26c-5 4-7 9-5 15 1 3 3 5 5 6-1-7 1-13 7-19 1-2-4-4-7-2Z'/%3E%3C/svg%3E" />
+  <link rel="apple-touch-icon" href="./icon.svg" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <title>滴答记 · DiDa Ji</title>
+  <style>
+    :root {
+      --sea: #2B6CB0;
+      --sky: #63B3ED;
+      --gold: #D4A017;
+      --cream: #FDF6E3;
+      --white: #FFFFFF;
+      --ink: #2D3748;
+      --muted: #718096;
+      --line: rgba(99, 179, 237, 0.25);
+      --glow: 0 4px 20px rgba(43, 108, 176, 0.08);
+      --strong-glow: 0 18px 46px rgba(43, 108, 176, 0.16);
+      --radius: 16px;
+      color-scheme: light;
+      font-family: "Inter", "DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at 18% 4%, rgba(99, 179, 237, 0.22), transparent 30%),
+        radial-gradient(circle at 92% 12%, rgba(212, 160, 23, 0.13), transparent 28%),
+        linear-gradient(180deg, #FFFBEE 0%, var(--cream) 48%, #EEF8FF 100%);
+      color: var(--ink);
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    button,
+    textarea,
+    input {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .app-shell {
+      position: relative;
+      width: min(100%, 520px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(18px, env(safe-area-inset-top)) 18px calc(96px + env(safe-area-inset-bottom));
+      overflow: hidden;
+    }
+
+    .app-shell::before {
+      content: "";
+      position: fixed;
+      inset: -120px auto auto 50%;
+      width: 420px;
+      height: 420px;
+      transform: translateX(-50%);
+      pointer-events: none;
+      background:
+        repeating-radial-gradient(circle, rgba(99, 179, 237, 0.14) 0 1px, transparent 1px 28px),
+        radial-gradient(circle, rgba(255, 255, 255, 0.7), transparent 68%);
+      opacity: 0.8;
+      animation: breathe 7s ease-in-out infinite;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      animation: floatIn 220ms ease-out both;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 6px 0 12px;
+    }
+
+    .date-kicker {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: 24px;
+      line-height: 1.15;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 18px;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      font-size: 15px;
+      line-height: 1.35;
+      letter-spacing: 0;
+    }
+
+    .brand-drop {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 auto;
+      border-radius: 50% 50% 52% 52%;
+      color: var(--sea);
+      background:
+        radial-gradient(circle at 36% 28%, rgba(255, 255, 255, 0.96) 0 13%, transparent 14%),
+        linear-gradient(145deg, rgba(99, 179, 237, 0.95), rgba(43, 108, 176, 0.86));
+      box-shadow: var(--glow);
+      display: grid;
+      place-items: center;
+      transform: rotate(45deg);
+      overflow: hidden;
+    }
+
+    .brand-drop span {
+      transform: rotate(-45deg);
+      color: white;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .soft-card,
+    .meal-card,
+    .mood-card,
+    .export-panel,
+    .calendar-panel {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: var(--radius);
+      box-shadow: var(--glow);
+      backdrop-filter: blur(14px);
+    }
+
+    .milestone-strip {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      margin: 8px 0 16px;
+      color: #7A5800;
+      background: linear-gradient(100deg, rgba(253, 246, 227, 0.94), rgba(255, 246, 194, 0.9), rgba(231, 244, 255, 0.9));
+      border: 1px solid rgba(212, 160, 23, 0.28);
+      overflow: hidden;
+    }
+
+    .milestone-strip::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -18px;
+      height: 46px;
+      background: radial-gradient(ellipse at 20% 0, rgba(212, 160, 23, 0.28), transparent 54%);
+      animation: waveSlide 3.8s ease-in-out infinite;
+    }
+
+    .milestone-strip strong {
+      position: relative;
+      z-index: 1;
+      font-size: 14px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 16px 0 10px;
+    }
+
+    .section-title span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .today-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .meal-card {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .meal-copy,
+    .detail-copy {
+      min-width: 0;
+    }
+
+    .meal-top,
+    .detail-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .meal-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: #EAF6FF;
+      color: var(--sea);
+      font-size: 21px;
+    }
+
+    .meal-card p {
+      margin-top: 6px;
+      white-space: pre-wrap;
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .meal-meta,
+    .tiny-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .delete-record-button {
+      min-width: 44px;
+      min-height: 32px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: #9B4D46;
+      background: rgba(255, 238, 232, 0.9);
+      font-size: 12px;
+      flex: 0 0 auto;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .delete-record-button:active {
+      transform: scale(0.96);
+      background: rgba(255, 220, 210, 0.96);
+    }
+
+    .empty-state {
+      padding: 22px 18px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(99, 179, 237, 0.45);
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: var(--radius);
+    }
+
+    .empty-state .drop {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 26px;
+      animation: drip 2.2s ease-in-out infinite;
+    }
+
+    .mood-card {
+      padding: 14px;
+    }
+
+    .mood-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .mood-header .selected-mood {
+      color: var(--sea);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .mood-options {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .mood-button {
+      min-height: 64px;
+      padding: 8px 4px;
+      border-radius: 14px;
+      background: rgba(234, 246, 255, 0.82);
+      color: var(--ink);
+      display: grid;
+      gap: 4px;
+      place-items: center;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .mood-button b {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .mood-button span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.15;
+      word-break: keep-all;
+    }
+
+    .mood-button.active {
+      background: #FFFFFF;
+      box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.34), var(--glow);
+      transform: translateY(-2px);
+    }
+
+    .calendar-panel {
+      padding: 14px;
+    }
+
+    .calendar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .icon-button {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      color: var(--sea);
+      background: rgba(234, 246, 255, 0.94);
+      display: grid;
+      place-items: center;
+      box-shadow: none;
+      overflow: hidden;
+    }
+
+    .icon-button:active,
+    .primary-action:active,
+    .range-chip:active,
+    .mood-button:active,
+    .meal-option:active {
+      transform: scale(0.98);
+    }
+
+    .week-row,
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .week-row {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .day-cell {
+      position: relative;
+      min-height: 48px;
+      border-radius: 14px;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.56);
+      display: grid;
+      place-items: center;
+      gap: 0;
+      padding: 6px 2px 4px;
+    }
+
+    .day-cell.other-month {
+      color: rgba(113, 128, 150, 0.42);
+    }
+
+    .day-cell.today {
+      box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.32);
+    }
+
+    .day-cell.selected {
+      background: rgba(99, 179, 237, 0.18);
+    }
+
+    .day-cell .date-number {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .day-markers {
+      min-height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+      font-size: 13px;
+    }
+
+    .day-cell.has-record:hover .day-markers,
+    .day-cell.has-record:focus-visible .day-markers {
+      animation: wiggleDrop 420ms ease;
+    }
+
+    .selected-day-detail {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(99, 179, 237, 0.18);
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .detail-item {
+      padding: 11px 12px;
+      border-radius: 13px;
+      background: rgba(234, 246, 255, 0.64);
+    }
+
+    .detail-item p {
+      margin-top: 4px;
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .export-panel {
+      padding: 16px;
+    }
+
+    .range-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 14px 0;
+    }
+
+    .range-chip,
+    .meal-option {
+      min-height: 44px;
+      border-radius: 14px;
+      color: var(--sea);
+      background: rgba(234, 246, 255, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+    }
+
+    .range-chip.active,
+    .meal-option.active {
+      color: var(--white);
+      background: linear-gradient(135deg, var(--sea), var(--sky));
+      box-shadow: var(--glow);
+    }
+
+    .date-inputs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    label.input-label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type="date"],
+    textarea {
+      width: 100%;
+      border: 1px solid rgba(99, 179, 237, 0.24);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      outline: 0;
+    }
+
+    input[type="date"] {
+      min-height: 44px;
+      padding: 0 10px;
+    }
+
+    textarea {
+      min-height: 132px;
+      padding: 13px 14px;
+      line-height: 1.55;
+      resize: vertical;
+    }
+
+    textarea::placeholder {
+      color: rgba(113, 128, 150, 0.64);
+    }
+
+    .preview-box {
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(99, 179, 237, 0.16);
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .primary-action {
+      position: relative;
+      min-height: 48px;
+      width: 100%;
+      border-radius: 999px;
+      color: white;
+      background: linear-gradient(135deg, var(--sea), var(--sky));
+      box-shadow: var(--strong-glow);
+      font-weight: 750;
+      overflow: hidden;
+      transition: transform 160ms ease;
+    }
+
+    .primary-action.secondary {
+      color: var(--sea);
+      background: rgba(234, 246, 255, 0.92);
+      box-shadow: none;
+    }
+
+    .primary-action[disabled] {
+      cursor: not-allowed;
+      opacity: 0.52;
+      box-shadow: none;
+    }
+
+    .ripple-target::after {
+      content: "";
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.55);
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .ripple-target:active::after {
+      animation: tapRipple 520ms ease-out;
+    }
+
+    .fab {
+      position: fixed;
+      left: 50%;
+      bottom: calc(76px + env(safe-area-inset-bottom));
+      z-index: 6;
+      width: min(180px, calc(100vw - 42px));
+      min-height: 54px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      color: white;
+      background: linear-gradient(135deg, var(--sea), var(--sky));
+      box-shadow: 0 16px 34px rgba(43, 108, 176, 0.24);
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      z-index: 7;
+      width: min(100% - 24px, 496px);
+      transform: translateX(-50%);
+      min-height: 62px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: 0 14px 36px rgba(43, 108, 176, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-button {
+      border-radius: 16px;
+      color: var(--muted);
+      background: transparent;
+      display: grid;
+      gap: 2px;
+      place-items: center;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .nav-button b {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 500;
+    }
+
+    .nav-button.active {
+      color: var(--sea);
+      background: rgba(234, 246, 255, 0.92);
+    }
+
+    .sheet-backdrop,
+    .encourage-backdrop,
+    .milestone-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      background: rgba(45, 55, 72, 0.18);
+      backdrop-filter: blur(8px);
+    }
+
+    .sheet-backdrop.open,
+    .encourage-backdrop.open,
+    .milestone-backdrop.open {
+      display: block;
+      animation: fadeIn 180ms ease-out both;
+    }
+
+    .sheet {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: min(100%, 520px);
+      transform: translateX(-50%);
+      padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+      border-radius: 26px 26px 0 0;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(99, 179, 237, 0.16), transparent 26%),
+        var(--white);
+      box-shadow: 0 -20px 48px rgba(43, 108, 176, 0.17);
+      animation: sheetIn 260ms ease-out both;
+    }
+
+    .sheet-handle {
+      width: 46px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(99, 179, 237, 0.42);
+      margin: 0 auto 14px;
+    }
+
+    .sheet-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      gap: 12px;
+    }
+
+    .meal-options {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin: 10px 0 14px;
+    }
+
+    .meal-option {
+      min-height: 62px;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 13px;
+    }
+
+    .meal-option b {
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .sheet-actions {
+      display: grid;
+      grid-template-columns: 0.82fr 1.18fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .encourage-card {
+      position: absolute;
+      left: 50%;
+      bottom: 0;
+      width: min(100%, 520px);
+      min-height: 46vh;
+      transform: translateX(-50%);
+      padding: 28px 24px calc(24px + env(safe-area-inset-bottom));
+      border-radius: 32px 32px 0 0;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 -26px 62px rgba(43, 108, 176, 0.2);
+      overflow: hidden;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      animation: sheetIn 260ms ease-out both;
+    }
+
+    .encourage-card::before,
+    .encourage-card::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 48%;
+      width: 110px;
+      height: 110px;
+      border: 1px solid rgba(99, 179, 237, 0.25);
+      border-radius: 999px;
+      transform: translate(-50%, -50%) scale(0.45);
+      animation: softRipple 2.5s ease-out infinite;
+    }
+
+    .encourage-card::after {
+      animation-delay: 780ms;
+    }
+
+    .encourage-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 14px;
+    }
+
+    .falling-drop {
+      width: 42px;
+      height: 42px;
+      border-radius: 50% 50% 52% 52%;
+      background: linear-gradient(145deg, var(--sky), var(--sea));
+      transform: rotate(45deg);
+      animation: dropFall 540ms cubic-bezier(.2, .72, .2, 1) both;
+    }
+
+    .encourage-content p {
+      max-width: 330px;
+      color: var(--ink);
+      font-size: 18px;
+      line-height: 1.65;
+      font-weight: 650;
+    }
+
+    .milestone-scene {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 50% 30%, rgba(255, 255, 255, 0.92), rgba(253, 246, 227, 0.86) 36%, rgba(234, 246, 255, 0.9) 100%);
+      overflow: hidden;
+    }
+
+    .milestone-copy {
+      position: relative;
+      z-index: 2;
+      width: min(100%, 380px);
+      padding: 26px 22px;
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.84);
+      box-shadow: var(--strong-glow);
+    }
+
+    .milestone-copy .big {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 56px;
+      line-height: 1;
+    }
+
+    .milestone-copy h2 {
+      margin-bottom: 8px;
+      color: var(--sea);
+      font-size: 22px;
+    }
+
+    .milestone-copy p {
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .milestone-3 .big {
+      animation: bounceDrop 560ms ease-out 2;
+    }
+
+    .milestone-7::before {
+      content: "";
+      position: absolute;
+      left: -20%;
+      top: 48%;
+      width: 140%;
+      height: 130px;
+      background:
+        radial-gradient(ellipse at 16% 0%, rgba(255, 255, 255, 0.92), transparent 42%),
+        linear-gradient(100deg, transparent 0 8%, rgba(212, 160, 23, 0.75) 18%, rgba(255, 227, 122, 0.88) 44%, rgba(99, 179, 237, 0.34) 70%, transparent 92%);
+      border-radius: 50%;
+      transform: translateX(-100%) rotate(-5deg);
+      animation: goldenWave 900ms ease-out 120ms both;
+    }
+
+    .milestone-30 .swimmer {
+      position: absolute;
+      left: 50%;
+      top: 34%;
+      width: 120px;
+      height: 58px;
+      transform: translateX(-50%);
+      animation: swimAcross 1.8s ease-in-out infinite;
+    }
+
+    .milestone-30 .swimmer::before {
+      content: "🏊";
+      position: absolute;
+      left: 8px;
+      top: -20px;
+      font-size: 42px;
+    }
+
+    .milestone-30 .swimmer::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 6px;
+      height: 20px;
+      border-radius: 50%;
+      background: repeating-radial-gradient(ellipse at center, rgba(99, 179, 237, 0.55) 0 7px, transparent 8px 18px);
+    }
+
+    .gold-rain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, rgba(212, 160, 23, 0.86) 0 3px, transparent 4px),
+        radial-gradient(circle, rgba(99, 179, 237, 0.75) 0 3px, transparent 4px);
+      background-size: 44px 68px, 60px 82px;
+      animation: rainFall 1.5s linear infinite;
+      opacity: 0.76;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(148px + env(safe-area-inset-bottom));
+      z-index: 30;
+      max-width: min(88vw, 360px);
+      padding: 11px 14px;
+      border-radius: 999px;
+      color: var(--sea);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--strong-glow);
+      transform: translateX(-50%) translateY(16px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease, transform 180ms ease;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    @keyframes floatIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes sheetIn {
+      from {
+        transform: translateX(-50%) translateY(26px);
+        opacity: 0.4;
+      }
+      to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes tapRipple {
+      from {
+        opacity: 0.72;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(18);
+      }
+    }
+
+    @keyframes softRipple {
+      from {
+        opacity: 0.72;
+        transform: translate(-50%, -50%) scale(0.42);
+      }
+      to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(3.2);
+      }
+    }
+
+    @keyframes dropFall {
+      0% {
+        opacity: 0;
+        transform: translateY(-46px) rotate(45deg) scale(0.8);
+      }
+      78% {
+        opacity: 1;
+        transform: translateY(4px) rotate(45deg) scale(1.04);
+      }
+      100% {
+        transform: translateY(0) rotate(45deg) scale(1);
+      }
+    }
+
+    @keyframes drip {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(5px); }
+    }
+
+    @keyframes wiggleDrop {
+      0%, 100% { transform: rotate(0deg); }
+      35% { transform: rotate(-8deg); }
+      65% { transform: rotate(8deg); }
+    }
+
+    @keyframes breathe {
+      0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.72; }
+      50% { transform: translateX(-50%) scale(1.04); opacity: 1; }
+    }
+
+    @keyframes waveSlide {
+      0%, 100% { transform: translateX(-10px); }
+      50% { transform: translateX(24px); }
+    }
+
+    @keyframes bounceDrop {
+      0% { transform: translateY(-28px) scale(0.84); opacity: 0; }
+      52% { transform: translateY(4px) scale(1.08); opacity: 1; }
+      100% { transform: translateY(0) scale(1); opacity: 1; }
+    }
+
+    @keyframes goldenWave {
+      from { transform: translateX(-100%) rotate(-5deg); }
+      to { transform: translateX(8%) rotate(-5deg); }
+    }
+
+    @keyframes swimAcross {
+      0%, 100% { transform: translateX(-54%) translateY(0); }
+      50% { transform: translateX(-44%) translateY(8px); }
+    }
+
+    @keyframes rainFall {
+      from { background-position: 0 -80px, 18px -120px; }
+      to { background-position: 0 80px, 18px 44px; }
+    }
+
+    @media (max-width: 380px) {
+      .app-shell {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .mood-options {
+        gap: 6px;
+      }
+
+      .mood-button {
+        min-height: 58px;
+      }
+
+      .mood-button span {
+        font-size: 10px;
+      }
+
+      .meal-options {
+        gap: 6px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="app" class="app-shell" aria-live="polite"></main>
+
+  <div id="recordSheet" class="sheet-backdrop" aria-hidden="true">
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="recordTitle">
+      <div class="sheet-handle" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <div>
+          <p class="date-kicker" id="recordDateText"></p>
+          <h2 id="recordTitle">记一笔饮食</h2>
+        </div>
+        <button class="icon-button" id="closeSheetButton" type="button" aria-label="关闭">×</button>
+      </div>
+
+      <h3>选择餐次</h3>
+      <div class="meal-options" id="mealOptions"></div>
+
+      <label class="input-label" for="foodContent">
+        食物内容
+        <textarea id="foodContent" placeholder="白粥、蒸蛋、嫩豆腐"></textarea>
+      </label>
+
+      <div class="sheet-actions">
+        <button class="primary-action secondary ripple-target" id="cancelRecordButton" type="button">取消</button>
+        <button class="primary-action ripple-target" id="saveRecordButton" type="button">保存</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="encourageModal" class="encourage-backdrop" aria-hidden="true">
+    <section class="encourage-card" role="dialog" aria-modal="true">
+      <div class="encourage-content">
+        <div class="falling-drop" aria-hidden="true"></div>
+        <p id="encourageText"></p>
+        <span class="tiny-note">轻点任意处关闭</span>
+      </div>
+    </section>
+  </div>
+
+  <div id="milestoneModal" class="milestone-backdrop" aria-hidden="true"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const STORAGE_KEY = "dida-ji-state-v1";
+    const TODAY = toDateKey(new Date());
+
+    const mealOptions = [
+      { name: "早餐", icon: "🥣" },
+      { name: "午餐", icon: "🍚" },
+      { name: "晚餐", icon: "🍲" },
+      { name: "加餐", icon: "🍌" }
+    ];
+
+    const moodOptions = [
+      { emoji: "😊", label: "很舒适" },
+      { emoji: "🙂", label: "还不错" },
+      { emoji: "😐", label: "一般般" },
+      { emoji: "😣", label: "有些不适" },
+      { emoji: "🤢", label: "很难受" }
+    ];
+
+    const encouragementTemplates = [
+      "{food}，今天吃得好温柔～身体也在悄悄感谢你呢。",
+      "这一笔已经落进小湖里啦，{food} 会帮你留下清清楚楚的线索。",
+      "记下 {food} 的你很棒，照顾自己这件事也可以轻轻地完成。",
+      "滴答一声，今天又多了一点确定感。{food} 收到啦。",
+      "{food} 看起来很安稳，愿今天的身体也像水面一样慢慢舒展开。",
+      "不是每一天都要完美，但每一次记录都很有力量。{food}，已珍藏。",
+      "小水滴替你盖章：{food} 已记录，今天也有好好陪自己。",
+      "{food} 这一页很清爽，给认真生活的你加一点蓝色能量。",
+      "你把身体的感受放在心上，这已经很了不起。{food} 记好啦。",
+      "温柔地吃，温柔地记。{food} 会成为以后看懂自己的小线索。",
+      "这一滴没有白落下，{food} 正在帮你拼出更清楚的饮食地图。",
+      "{food} 已经进档案啦。愿今天的肚肚少一点波澜，多一点平静。"
+    ];
+
+    const milestones = {
+      streak3: {
+        kind: "milestone-3",
+        icon: "💧",
+        title: "连续 3 天",
+        message: "水到财来～财运正在积累中！"
+      },
+      streak7: {
+        kind: "milestone-7",
+        icon: "🌊",
+        title: "整整一周",
+        message: "你的坚持就像海浪，从不停歇。"
+      },
+      streak30: {
+        kind: "milestone-30",
+        icon: "🏊",
+        title: "连续 30 天",
+        message: "你已经是自己健康的守护者了。"
+      },
+      total100: {
+        kind: "milestone-100",
+        icon: "✨",
+        title: "第 100 滴",
+        message: "金色水滴雨来啦，财源广进！"
+      }
+    };
+
+    let state = loadState();
+    let activeTab = "today";
+    let selectedMeal = "早餐";
+    let calendarCursor = startOfMonth(new Date());
+    let selectedDate = TODAY;
+    let exportMode = "7";
+    let customRange = {
+      start: shiftDate(TODAY, -6),
+      end: TODAY
+    };
+
+    const app = document.getElementById("app");
+    const recordSheet = document.getElementById("recordSheet");
+    const mealOptionsNode = document.getElementById("mealOptions");
+    const foodContent = document.getElementById("foodContent");
+    const encourageModal = document.getElementById("encourageModal");
+    const milestoneModal = document.getElementById("milestoneModal");
+    const toast = document.getElementById("toast");
+
+    document.getElementById("closeSheetButton").addEventListener("click", closeRecordSheet);
+    document.getElementById("cancelRecordButton").addEventListener("click", closeRecordSheet);
+    document.getElementById("saveRecordButton").addEventListener("click", saveRecord);
+    recordSheet.addEventListener("click", (event) => {
+      if (event.target === recordSheet) closeRecordSheet();
+    });
+    encourageModal.addEventListener("click", closeEncouragement);
+    milestoneModal.addEventListener("click", closeMilestone);
+
+    renderMealOptions();
+    render();
+    window.setTimeout(showPendingMilestone, 360);
+
+    function loadState() {
+      const fallback = {
+        records: [],
+        dailyMood: {},
+        milestonesShown: {}
+      };
+
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return fallback;
+        const parsed = JSON.parse(raw);
+        return {
+          records: Array.isArray(parsed.records) ? parsed.records : [],
+          dailyMood: parsed.dailyMood && typeof parsed.dailyMood === "object" ? parsed.dailyMood : {},
+          milestonesShown: parsed.milestonesShown && typeof parsed.milestonesShown === "object" ? parsed.milestonesShown : {}
+        };
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function render() {
+      const stats = getStats();
+      app.innerHTML = `
+        <section class="page">
+          ${renderTopbar()}
+          ${activeTab === "today" ? renderToday(stats) : ""}
+          ${activeTab === "calendar" ? renderCalendar() : ""}
+          ${activeTab === "export" ? renderExport() : ""}
+        </section>
+        ${activeTab === "today" ? `<button class="fab ripple-target" type="button" data-action="open-record"><span>＋</span> 记一笔</button>` : ""}
+        ${renderNav()}
+      `;
+
+      bindPageEvents();
+    }
+
+    function renderTopbar() {
+      const dateText = formatDateHuman(TODAY);
+      return `
+        <header class="topbar">
+          <div>
+            <p class="date-kicker">${dateText}</p>
+            <h1>${getGreeting()}，今天也慢慢来</h1>
+          </div>
+          <div class="brand-drop" aria-hidden="true"><span>滴</span></div>
+        </header>
+      `;
+    }
+
+    function renderToday(stats) {
+      const todayRecords = getRecordsByDate(TODAY);
+      const todayMood = state.dailyMood[TODAY];
+      const milestone = getTodayMilestone(stats);
+
+      return `
+        ${milestone ? `<div class="soft-card milestone-strip"><strong>${milestone.icon} ${milestone.title}：${milestone.message}</strong></div>` : ""}
+        <section class="section-title">
+          <h2>今日饮食</h2>
+          <span>${todayRecords.length} 条记录</span>
+        </section>
+        <div class="today-grid">
+          ${todayRecords.length ? todayRecords.map(renderMealCard).join("") : `
+            <div class="empty-state">
+              <span class="drop">💧</span>
+              <p>今天还没有记录。饭后随手写一点就好，不用很完整。</p>
+            </div>
+          `}
+        </div>
+
+        <section class="section-title">
+          <h2>今日感受</h2>
+          <span>${todayMood ? "已记录，可修改" : "每天一次"}</span>
+        </section>
+        <section class="mood-card">
+          <div class="mood-header">
+            <h3>身体现在像什么天气？</h3>
+            <span class="selected-mood">${todayMood ? `${todayMood.emoji} ${todayMood.label}` : "未选择"}</span>
+          </div>
+          <div class="mood-options">
+            ${moodOptions.map((mood) => `
+              <button class="mood-button ${todayMood && todayMood.emoji === mood.emoji ? "active" : ""}" type="button" data-action="set-mood" data-emoji="${mood.emoji}" data-label="${mood.label}" aria-label="${mood.label}">
+                <b>${mood.emoji}</b>
+                <span>${mood.label}</span>
+              </button>
+            `).join("")}
+          </div>
+        </section>
+
+        <section class="section-title">
+          <h2>小水滴进度</h2>
+          <span>连续 ${stats.streak} 天</span>
+        </section>
+        <section class="soft-card" style="padding:14px;">
+          <p class="tiny-note">累计 ${stats.total} 条饮食记录。每一滴都算数，哪怕只是今天的一小口。</p>
+        </section>
+      `;
+    }
+
+    function renderMealCard(record) {
+      const meal = mealOptions.find((item) => item.name === record.meal) || mealOptions[0];
+      const timeText = record.createdAt ? new Date(record.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "";
+      return `
+        <article class="meal-card">
+          <div class="meal-icon" aria-hidden="true">${meal.icon}</div>
+          <div class="meal-copy">
+            <div class="meal-top">
+              <div class="meal-meta">${record.meal}${timeText ? ` · ${timeText}` : ""}</div>
+              <button class="delete-record-button" type="button" data-action="delete-record" data-id="${record.id}" aria-label="删除${record.meal}记录">删除</button>
+            </div>
+            <p>${escapeHtml(record.content)}</p>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderCalendar() {
+      const monthLabel = `${calendarCursor.getFullYear()} 年 ${calendarCursor.getMonth() + 1} 月`;
+      const cells = getCalendarCells(calendarCursor);
+      const selectedRecords = getRecordsByDate(selectedDate);
+      const selectedMood = state.dailyMood[selectedDate];
+
+      return `
+        <section class="calendar-panel">
+          <div class="calendar-head">
+            <button class="icon-button" type="button" data-action="prev-month" aria-label="上个月">‹</button>
+            <h2>${monthLabel}</h2>
+            <button class="icon-button" type="button" data-action="next-month" aria-label="下个月">›</button>
+          </div>
+          <div class="week-row">
+            ${["一", "二", "三", "四", "五", "六", "日"].map((day) => `<span>${day}</span>`).join("")}
+          </div>
+          <div class="calendar-grid">
+            ${cells.map((cell) => renderDayCell(cell)).join("")}
+          </div>
+          <div class="selected-day-detail">
+            <p class="date-kicker">${formatDateHuman(selectedDate)}</p>
+            <h2>当天记录</h2>
+            <div class="detail-list">
+              ${selectedRecords.length ? selectedRecords.map((record) => `
+                <div class="detail-item">
+                  <div class="detail-copy">
+                    <div class="detail-top">
+                      <strong>${record.meal}</strong>
+                      <button class="delete-record-button" type="button" data-action="delete-record" data-id="${record.id}" aria-label="删除${record.meal}记录">删除</button>
+                    </div>
+                    <p>${escapeHtml(record.content)}</p>
+                  </div>
+                </div>
+              `).join("") : `<div class="empty-state"><span class="drop">💧</span><p>这一天还没有饮食记录。</p></div>`}
+              <div class="detail-item">
+                <strong>今日感受</strong>
+                <p>${selectedMood ? `${selectedMood.emoji} ${selectedMood.label}` : "未记录"}</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function renderDayCell(cell) {
+      const dateKey = toDateKey(cell.date);
+      const hasRecord = getRecordsByDate(dateKey).length > 0;
+      const mood = state.dailyMood[dateKey];
+      const classes = [
+        "day-cell",
+        cell.currentMonth ? "" : "other-month",
+        dateKey === TODAY ? "today" : "",
+        dateKey === selectedDate ? "selected" : "",
+        hasRecord ? "has-record" : ""
+      ].filter(Boolean).join(" ");
+
+      return `
+        <button class="${classes}" type="button" data-action="select-date" data-date="${dateKey}" aria-label="${formatDateHuman(dateKey)}">
+          <span class="date-number">${cell.date.getDate()}</span>
+          <span class="day-markers">${hasRecord ? "💧" : ""}${mood ? mood.emoji : ""}</span>
+        </button>
+      `;
+    }
+
+    function renderExport() {
+      const range = getExportRange();
+      const records = getRecordsInRange(range.start, range.end);
+      const moods = Object.keys(state.dailyMood).filter((date) => date >= range.start && date <= range.end).length;
+
+      return `
+        <section class="export-panel">
+          <p class="date-kicker">导出给医生、AI 或自己复盘</p>
+          <h2>饮食记录 Markdown</h2>
+          <div class="range-grid">
+            <button class="range-chip ${exportMode === "7" ? "active" : ""}" type="button" data-action="set-export-mode" data-mode="7">过去 7 天</button>
+            <button class="range-chip ${exportMode === "30" ? "active" : ""}" type="button" data-action="set-export-mode" data-mode="30">过去 30 天</button>
+            <button class="range-chip ${exportMode === "custom" ? "active" : ""}" type="button" data-action="set-export-mode" data-mode="custom" style="grid-column:1 / -1;">自定义范围</button>
+          </div>
+          ${exportMode === "custom" ? `
+            <div class="date-inputs">
+              <label class="input-label">开始日期<input type="date" value="${customRange.start}" data-action="custom-start"></label>
+              <label class="input-label">结束日期<input type="date" value="${customRange.end}" data-action="custom-end"></label>
+            </div>
+          ` : ""}
+          <div class="preview-box">
+            记录范围：${range.start} 至 ${range.end}<br>
+            饮食记录：${records.length} 条<br>
+            今日感受：${moods} 天
+          </div>
+          <div style="height:14px;"></div>
+          <button class="primary-action ripple-target" type="button" data-action="download-md" ${records.length ? "" : "disabled"}>下载 .md 文件</button>
+        </section>
+      `;
+    }
+
+    function renderNav() {
+      const items = [
+        { key: "today", icon: "🏠", label: "今日" },
+        { key: "calendar", icon: "📅", label: "日历" },
+        { key: "export", icon: "📤", label: "导出" }
+      ];
+
+      return `
+        <nav class="bottom-nav" aria-label="主导航">
+          ${items.map((item) => `
+            <button class="nav-button ${activeTab === item.key ? "active" : ""}" type="button" data-action="switch-tab" data-tab="${item.key}" aria-label="${item.label}">
+              <b>${item.icon}</b>
+              <span>${item.label}</span>
+            </button>
+          `).join("")}
+        </nav>
+      `;
+    }
+
+    function bindPageEvents() {
+      app.querySelectorAll("[data-action]").forEach((node) => {
+        const action = node.dataset.action;
+        if (action === "switch-tab") {
+          node.addEventListener("click", () => {
+            activeTab = node.dataset.tab;
+            render();
+          });
+        }
+        if (action === "open-record") node.addEventListener("click", openRecordSheet);
+        if (action === "set-mood") {
+          node.addEventListener("click", () => {
+            state.dailyMood[TODAY] = {
+              emoji: node.dataset.emoji,
+              label: node.dataset.label
+            };
+            saveState();
+            showToast(`今日感受已记录：${node.dataset.emoji} ${node.dataset.label}`);
+            render();
+          });
+        }
+        if (action === "prev-month") {
+          node.addEventListener("click", () => {
+            calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
+            selectedDate = toDateKey(calendarCursor);
+            render();
+          });
+        }
+        if (action === "next-month") {
+          node.addEventListener("click", () => {
+            calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
+            selectedDate = toDateKey(calendarCursor);
+            render();
+          });
+        }
+        if (action === "select-date") {
+          node.addEventListener("click", () => {
+            selectedDate = node.dataset.date;
+            render();
+          });
+        }
+        if (action === "set-export-mode") {
+          node.addEventListener("click", () => {
+            exportMode = node.dataset.mode;
+            render();
+          });
+        }
+        if (action === "custom-start") {
+          node.addEventListener("change", () => {
+            customRange.start = node.value || customRange.start;
+            if (customRange.start > customRange.end) customRange.end = customRange.start;
+            render();
+          });
+        }
+        if (action === "custom-end") {
+          node.addEventListener("change", () => {
+            customRange.end = node.value || customRange.end;
+            if (customRange.end < customRange.start) customRange.start = customRange.end;
+            render();
+          });
+        }
+        if (action === "download-md") node.addEventListener("click", downloadMarkdown);
+        if (action === "delete-record") {
+          node.addEventListener("click", () => deleteRecord(node.dataset.id));
+        }
+      });
+    }
+
+    function renderMealOptions() {
+      mealOptionsNode.innerHTML = mealOptions.map((meal) => `
+        <button class="meal-option ${selectedMeal === meal.name ? "active" : ""}" type="button" data-meal="${meal.name}">
+          <b>${meal.icon}</b>
+          <span>${meal.name}</span>
+        </button>
+      `).join("");
+
+      mealOptionsNode.querySelectorAll("button").forEach((button) => {
+        button.addEventListener("click", () => {
+          selectedMeal = button.dataset.meal;
+          renderMealOptions();
+        });
+      });
+    }
+
+    function openRecordSheet() {
+      document.getElementById("recordDateText").textContent = formatDateHuman(TODAY);
+      foodContent.value = "";
+      selectedMeal = inferNextMeal();
+      renderMealOptions();
+      recordSheet.classList.add("open");
+      recordSheet.setAttribute("aria-hidden", "false");
+      window.setTimeout(() => foodContent.focus(), 120);
+    }
+
+    function closeRecordSheet() {
+      recordSheet.classList.remove("open");
+      recordSheet.setAttribute("aria-hidden", "true");
+    }
+
+    function saveRecord() {
+      const content = foodContent.value.trim();
+      if (!content) {
+        showToast("先写一点食物内容就可以保存啦");
+        return;
+      }
+
+      const record = {
+        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        date: TODAY,
+        meal: selectedMeal,
+        content,
+        createdAt: new Date().toISOString()
+      };
+
+      state.records.push(record);
+      saveState();
+      closeRecordSheet();
+      render();
+      showEncouragement(content);
+      window.setTimeout(() => checkAndShowMilestone(), 620);
+    }
+
+    function deleteRecord(recordId) {
+      const record = state.records.find((item) => item.id === recordId);
+      if (!record) return;
+
+      const ok = window.confirm(`确定删除这条${record.meal}记录吗？`);
+      if (!ok) return;
+
+      state.records = state.records.filter((item) => item.id !== recordId);
+      saveState();
+      showToast("这条记录已删除");
+      render();
+    }
+
+    function showEncouragement(content) {
+      const cleanFood = summarizeFood(content);
+      const index = Math.abs(hashString(content)) % encouragementTemplates.length;
+      document.getElementById("encourageText").textContent = encouragementTemplates[index].replaceAll("{food}", cleanFood);
+      encourageModal.classList.add("open");
+      encourageModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeEncouragement() {
+      encourageModal.classList.remove("open");
+      encourageModal.setAttribute("aria-hidden", "true");
+    }
+
+    function getPendingMilestone() {
+      const stats = getStats();
+      const checks = [
+        ["streak30", stats.streak >= 30],
+        ["streak7", stats.streak >= 7],
+        ["streak3", stats.streak >= 3],
+        ["total100", stats.total >= 100]
+      ];
+
+      for (const [key, passed] of checks) {
+        if (passed && !state.milestonesShown[key]) {
+          return { key, ...milestones[key] };
+        }
+      }
+
+      return null;
+    }
+
+    function getTodayMilestone(stats) {
+      if (stats.streak >= 30) return milestones.streak30;
+      if (stats.streak >= 7) return milestones.streak7;
+      if (stats.streak >= 3) return milestones.streak3;
+      return null;
+    }
+
+    function showPendingMilestone() {
+      const pending = getPendingMilestone();
+      if (pending) showMilestone(pending);
+    }
+
+    function checkAndShowMilestone() {
+      const pending = getPendingMilestone();
+      if (pending) showMilestone(pending);
+    }
+
+    function showMilestone(milestone) {
+      state.milestonesShown[milestone.key] = true;
+      saveState();
+
+      milestoneModal.className = `milestone-backdrop open`;
+      milestoneModal.setAttribute("aria-hidden", "false");
+      milestoneModal.innerHTML = `
+        <section class="milestone-scene ${milestone.kind}" role="dialog" aria-modal="true">
+          ${milestone.kind === "milestone-30" ? `<div class="swimmer" aria-hidden="true"></div>` : ""}
+          ${milestone.kind === "milestone-100" ? `<div class="gold-rain" aria-hidden="true"></div>` : ""}
+          <div class="milestone-copy">
+            <span class="big">${milestone.icon}</span>
+            <h2>${milestone.title}</h2>
+            <p>${milestone.message}</p>
+            <div style="height:14px;"></div>
+            <button class="primary-action ripple-target" type="button" data-close-milestone>收下这滴能量</button>
+          </div>
+        </section>
+      `;
+
+      const closeButton = milestoneModal.querySelector("[data-close-milestone]");
+      if (closeButton) closeButton.addEventListener("click", closeMilestone);
+    }
+
+    function closeMilestone() {
+      milestoneModal.classList.remove("open");
+      milestoneModal.setAttribute("aria-hidden", "true");
+      milestoneModal.innerHTML = "";
+      render();
+    }
+
+    function getStats() {
+      const total = state.records.length;
+      const recordDates = [...new Set(state.records.map((record) => record.date))].sort();
+      let streak = 0;
+      let cursor = TODAY;
+
+      while (recordDates.includes(cursor)) {
+        streak += 1;
+        cursor = shiftDate(cursor, -1);
+      }
+
+      return { total, streak };
+    }
+
+    function inferNextMeal() {
+      const hour = new Date().getHours();
+      if (hour < 10) return "早餐";
+      if (hour < 15) return "午餐";
+      if (hour < 21) return "晚餐";
+      return "加餐";
+    }
+
+    function getRecordsByDate(dateKey) {
+      return state.records
+        .filter((record) => record.date === dateKey)
+        .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
+    function getRecordsInRange(start, end) {
+      return state.records
+        .filter((record) => record.date >= start && record.date <= end)
+        .sort((a, b) => a.date.localeCompare(b.date) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
+    function getExportRange() {
+      if (exportMode === "30") {
+        return { start: shiftDate(TODAY, -29), end: TODAY };
+      }
+      if (exportMode === "custom") {
+        return {
+          start: customRange.start <= customRange.end ? customRange.start : customRange.end,
+          end: customRange.end >= customRange.start ? customRange.end : customRange.start
+        };
+      }
+      return { start: shiftDate(TODAY, -6), end: TODAY };
+    }
+
+    function downloadMarkdown() {
+      const range = getExportRange();
+      const markdown = buildMarkdown(range.start, range.end);
+      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `滴答记-饮食记录-${range.start}_至_${range.end}.md`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("Markdown 已开始下载");
+    }
+
+    function buildMarkdown(start, end) {
+      const lines = [
+        "# 滴答记 · 饮食记录",
+        `导出时间：${TODAY}`,
+        `记录范围：${start} 至 ${end}`,
+        "",
+        "---",
+        ""
+      ];
+
+      const dates = collectDateRange(start, end).reverse();
+      dates.forEach((date) => {
+        const records = getRecordsByDate(date);
+        const mood = state.dailyMood[date];
+        if (!records.length && !mood) return;
+
+        lines.push(`## ${date}`, "");
+        mealOptions.forEach((meal) => {
+          const mealRecords = records.filter((record) => record.meal === meal.name);
+          if (!mealRecords.length) return;
+          lines.push(`**${meal.name}**`);
+          lines.push(mealRecords.map((record) => record.content).join("\n\n"));
+          lines.push("");
+        });
+        lines.push(`今日感受：${mood ? `${mood.emoji} ${mood.label}` : "未记录"}`, "", "---", "");
+      });
+
+      return lines.join("\n").trimEnd() + "\n";
+    }
+
+    function collectDateRange(start, end) {
+      const dates = [];
+      let cursor = start;
+      while (cursor <= end) {
+        dates.push(cursor);
+        cursor = shiftDate(cursor, 1);
+      }
+      return dates;
+    }
+
+    function getCalendarCells(monthDate) {
+      const first = startOfMonth(monthDate);
+      const startDay = (first.getDay() + 6) % 7;
+      const gridStart = new Date(first);
+      gridStart.setDate(first.getDate() - startDay);
+      const cells = [];
+
+      for (let index = 0; index < 42; index += 1) {
+        const date = new Date(gridStart);
+        date.setDate(gridStart.getDate() + index);
+        cells.push({
+          date,
+          currentMonth: date.getMonth() === first.getMonth()
+        });
+      }
+
+      return cells;
+    }
+
+    function startOfMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    function toDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function shiftDate(dateKey, days) {
+      const date = parseDateKey(dateKey);
+      date.setDate(date.getDate() + days);
+      return toDateKey(date);
+    }
+
+    function parseDateKey(dateKey) {
+      const [year, month, day] = dateKey.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDateHuman(dateKey) {
+      const date = typeof dateKey === "string" ? parseDateKey(dateKey) : dateKey;
+      return date.toLocaleDateString("zh-CN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        weekday: "long"
+      });
+    }
+
+    function getGreeting() {
+      const hour = new Date().getHours();
+      if (hour < 11) return "早上好";
+      if (hour < 18) return "下午好";
+      return "晚上好";
+    }
+
+    function summarizeFood(content) {
+      const text = content.replace(/\s+/g, " ").trim();
+      if (text.length <= 18) return text;
+      return `${text.slice(0, 18)}…`;
+    }
+
+    function hashString(value) {
+      let hash = 0;
+      for (let index = 0; index < value.length; index += 1) {
+        hash = ((hash << 5) - hash) + value.charCodeAt(index);
+        hash |= 0;
+      }
+      return hash;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.classList.remove("show");
+      }, 1800);
+    }
+
+    if ("serviceWorker" in navigator && location.protocol !== "file:") {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
