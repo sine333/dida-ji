@@ -1514,7 +1514,7 @@
       }
 
       const record = {
-        id: (crypto && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         date: TODAY,
         meal: selectedMeal,
         content,
@@ -1545,7 +1545,7 @@
     function showEncouragement(content) {
       const cleanFood = summarizeFood(content);
       const index = Math.abs(hashString(content)) % encouragementTemplates.length;
-      document.getElementById("encourageText").textContent = encouragementTemplates[index].replaceAll("{food}", cleanFood);
+      document.getElementById("encourageText").textContent = encouragementTemplates[index].split("{food}").join(cleanFood);
       encourageModal.classList.add("open");
       encourageModal.setAttribute("aria-hidden", "false");
     }
@@ -1798,11 +1798,11 @@
 
     function escapeHtml(value) {
       return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     function showToast(message) {
