@@ -189,6 +189,96 @@
       font-size: 14px;
     }
 
+    .sync-card {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+      padding: 12px 14px;
+      margin: 4px 0 14px;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(99, 179, 237, 0.18);
+      border-radius: var(--radius);
+      box-shadow: var(--glow);
+      backdrop-filter: blur(14px);
+    }
+
+    .sync-top,
+    .sync-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sync-copy {
+      min-width: 0;
+    }
+
+    .sync-title {
+      color: var(--sea);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .sync-note {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .sync-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .sync-input {
+      width: 100%;
+      min-height: 40px;
+      padding: 0 12px;
+      border: 1px solid rgba(99, 179, 237, 0.24);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      color: var(--ink);
+      outline: 0;
+    }
+
+    .sync-button,
+    .sync-link-button {
+      min-height: 40px;
+      border-radius: 14px;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .sync-button {
+      padding: 0 14px;
+      color: var(--white);
+      background: linear-gradient(135deg, var(--sea), var(--sky));
+      box-shadow: var(--glow);
+      white-space: nowrap;
+    }
+
+    .sync-link-button {
+      padding: 0 12px;
+      color: var(--sea);
+      background: rgba(234, 246, 255, 0.9);
+      white-space: nowrap;
+    }
+
+    .sync-button:disabled,
+    .sync-link-button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    .sync-button:active,
+    .sync-link-button:active {
+      transform: scale(0.98);
+    }
+
     .section-title {
       display: flex;
       align-items: center;
@@ -1009,6 +1099,15 @@
         padding-right: 14px;
       }
 
+      .sync-form {
+        grid-template-columns: 1fr;
+      }
+
+      .sync-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
       .mood-options {
         gap: 6px;
       }
@@ -1082,6 +1181,9 @@
 
   <script>
     const STORAGE_KEY = "dida-ji-state-v1";
+    const AUTH_STORAGE_KEY = "dida-ji-supabase-session-v1";
+    const SUPABASE_URL = "https://xbtztpxzgepkgbrpiodj.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_uVmdn4Sn_o0v6_gLoHY-bw_dPURE-bw";
     const TODAY = toDateKey(new Date());
 
     const mealOptions = [
@@ -1142,6 +1244,12 @@
     };
 
     let state = loadState();
+    let authSession = loadAuthSession();
+    let currentUser = authSession && authSession.user ? authSession.user : null;
+    let syncStatus = authSession ? "准备同步..." : "未登录";
+    let syncBusy = false;
+    let syncTimer = null;
+    let loginEmailDraft = localStorage.getItem("dida-ji-login-email") || "";
     let activeTab = "today";
     let selectedMeal = "早餐";
     let calendarCursor = startOfMonth(new Date());
@@ -1170,14 +1278,23 @@
     milestoneModal.addEventListener("click", closeMilestone);
 
     renderMealOptions();
-    render();
-    window.setTimeout(showPendingMilestone, 360);
+    boot();
+
+    async function boot() {
+      captureAuthRedirect();
+      normalizeState();
+      render();
+      if (authSession) await syncNow(false);
+      window.setTimeout(showPendingMilestone, 360);
+    }
 
     function loadState() {
       const fallback = {
         records: [],
         dailyMood: {},
-        milestonesShown: {}
+        milestonesShown: {},
+        deletedRecords: {},
+        lastSyncedAt: ""
       };
 
       try {
@@ -1187,10 +1304,24 @@
         return {
           records: Array.isArray(parsed.records) ? parsed.records : [],
           dailyMood: parsed.dailyMood && typeof parsed.dailyMood === "object" ? parsed.dailyMood : {},
-          milestonesShown: parsed.milestonesShown && typeof parsed.milestonesShown === "object" ? parsed.milestonesShown : {}
+          milestonesShown: parsed.milestonesShown && typeof parsed.milestonesShown === "object" ? parsed.milestonesShown : {},
+          deletedRecords: parsed.deletedRecords && typeof parsed.deletedRecords === "object" ? parsed.deletedRecords : {},
+          lastSyncedAt: parsed.lastSyncedAt || ""
         };
       } catch (error) {
         return fallback;
+      }
+    }
+
+    function loadAuthSession() {
+      try {
+        const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed || !parsed.accessToken || !parsed.refreshToken) return null;
+        return parsed;
+      } catch (error) {
+        return null;
       }
     }
 
@@ -1198,11 +1329,20 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }
 
+    function saveAuthSession() {
+      if (authSession) {
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authSession));
+      } else {
+        localStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+    }
+
     function render() {
       const stats = getStats();
       app.innerHTML = `
         <section class="page">
           ${renderTopbar()}
+          ${renderSyncCard()}
           ${activeTab === "today" ? renderToday(stats) : ""}
           ${activeTab === "calendar" ? renderCalendar() : ""}
           ${activeTab === "export" ? renderExport() : ""}
@@ -1224,6 +1364,42 @@
           </div>
           <div class="brand-drop" aria-hidden="true"><span>滴</span></div>
         </header>
+      `;
+    }
+
+    function renderSyncCard() {
+      const email = currentUser && currentUser.email ? currentUser.email : "";
+      const disabled = syncBusy ? "disabled" : "";
+
+      if (authSession) {
+        return `
+          <section class="sync-card" aria-label="云同步状态">
+            <div class="sync-top">
+              <div class="sync-copy">
+                <div class="sync-title">云同步已开启</div>
+                <p class="sync-note">${email ? escapeHtml(email) : "正在确认账号"} · ${escapeHtml(syncStatus)}</p>
+              </div>
+              <button class="sync-link-button" type="button" data-action="sync-now" ${disabled}>同步</button>
+            </div>
+            <div class="sync-actions">
+              <p class="sync-note">本机记录会保留，登录后会和云端合并。</p>
+              <button class="sync-link-button" type="button" data-action="sign-out" ${disabled}>退出</button>
+            </div>
+          </section>
+        `;
+      }
+
+      return `
+        <section class="sync-card" aria-label="登录并开启云同步">
+          <div class="sync-copy">
+            <div class="sync-title">登录后多端同步</div>
+            <p class="sync-note">输入邮箱，查收登录邮件；现在也可以继续本地记录。</p>
+          </div>
+          <div class="sync-form">
+            <input class="sync-input" type="email" inputmode="email" autocomplete="email" placeholder="你的邮箱" value="${escapeHtml(loginEmailDraft)}" data-action="login-email" aria-label="邮箱">
+            <button class="sync-button" type="button" data-action="send-login-link" ${disabled}>发送链接</button>
+          </div>
+        </section>
       `;
     }
 
@@ -1417,15 +1593,29 @@
           });
         }
         if (action === "open-record") node.addEventListener("click", openRecordSheet);
+        if (action === "login-email") {
+          node.addEventListener("input", () => {
+            loginEmailDraft = node.value.trim();
+            localStorage.setItem("dida-ji-login-email", loginEmailDraft);
+          });
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") sendLoginLink();
+          });
+        }
+        if (action === "send-login-link") node.addEventListener("click", sendLoginLink);
+        if (action === "sync-now") node.addEventListener("click", () => syncNow(true));
+        if (action === "sign-out") node.addEventListener("click", signOut);
         if (action === "set-mood") {
           node.addEventListener("click", () => {
             state.dailyMood[TODAY] = {
               emoji: node.dataset.emoji,
-              label: node.dataset.label
+              label: node.dataset.label,
+              updatedAt: new Date().toISOString()
             };
             saveState();
             showToast(`今日感受已记录：${node.dataset.emoji} ${node.dataset.label}`);
             render();
+            queueSync();
           });
         }
         if (action === "prev-month") {
@@ -1514,7 +1704,7 @@
       }
 
       const record = {
-        id: (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        id: createUuid(),
         date: TODAY,
         meal: selectedMeal,
         content,
@@ -1526,6 +1716,7 @@
       closeRecordSheet();
       render();
       showEncouragement(content);
+      queueSync();
       window.setTimeout(() => checkAndShowMilestone(), 620);
     }
 
@@ -1536,10 +1727,392 @@
       const ok = window.confirm(`确定删除这条${record.meal}记录吗？`);
       if (!ok) return;
 
+      state.deletedRecords = state.deletedRecords || {};
+      state.deletedRecords[recordId] = new Date().toISOString();
       state.records = state.records.filter((item) => item.id !== recordId);
       saveState();
       showToast("这条记录已删除");
       render();
+      queueSync();
+    }
+
+    function captureAuthRedirect() {
+      const hash = window.location.hash && window.location.hash.startsWith("#")
+        ? window.location.hash.slice(1)
+        : "";
+      if (!hash) return;
+
+      const params = new URLSearchParams(hash);
+      const errorDescription = params.get("error_description");
+      if (errorDescription) {
+        showToast(decodeURIComponent(errorDescription));
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        return;
+      }
+
+      const accessToken = params.get("access_token");
+      const refreshToken = params.get("refresh_token");
+      if (!accessToken || !refreshToken) return;
+
+      const expiresAt = Number(params.get("expires_at")) || Math.floor(Date.now() / 1000) + Number(params.get("expires_in") || 3600);
+      authSession = {
+        accessToken,
+        refreshToken,
+        expiresAt,
+        user: currentUser || null
+      };
+      saveAuthSession();
+      syncStatus = "登录成功，准备同步...";
+      window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    }
+
+    async function sendLoginLink() {
+      const emailInput = app.querySelector('[data-action="login-email"]');
+      const email = (emailInput ? emailInput.value : loginEmailDraft).trim();
+      if (!email || !email.includes("@")) {
+        showToast("先输入一个邮箱地址");
+        return;
+      }
+
+      loginEmailDraft = email;
+      localStorage.setItem("dida-ji-login-email", email);
+      syncBusy = true;
+      syncStatus = "正在发送登录邮件...";
+      render();
+
+      try {
+        const redirectUrl = window.location.origin + window.location.pathname;
+        await supabaseRequest(`/auth/v1/otp?redirect_to=${encodeURIComponent(redirectUrl)}`, {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            create_user: true
+          })
+        }, false);
+        showToast("登录邮件已发送，请查收邮箱");
+        syncStatus = "邮件已发送，等待登录";
+      } catch (error) {
+        console.warn(error);
+        syncStatus = "登录邮件发送失败";
+        showToast("发送失败，稍后再试");
+      } finally {
+        syncBusy = false;
+        render();
+      }
+    }
+
+    async function signOut() {
+      syncBusy = true;
+      syncStatus = "正在退出...";
+      render();
+      try {
+        if (authSession) {
+          await supabaseRequest("/auth/v1/logout", { method: "POST" }, true);
+        }
+      } catch (error) {
+        console.warn(error);
+      } finally {
+        authSession = null;
+        currentUser = null;
+        syncStatus = "未登录";
+        syncBusy = false;
+        saveAuthSession();
+        showToast("已退出云同步");
+        render();
+      }
+    }
+
+    function queueSync() {
+      if (!authSession) return;
+      syncStatus = "等待同步...";
+      window.clearTimeout(syncTimer);
+      syncTimer = window.setTimeout(() => syncNow(false), 420);
+    }
+
+    async function syncNow(manual) {
+      if (syncBusy) return;
+      if (!authSession) {
+        if (manual) showToast("先登录，再开启云同步");
+        return;
+      }
+
+      syncBusy = true;
+      syncStatus = "同步中...";
+      render();
+
+      try {
+        const user = await ensureSessionUser();
+        normalizeState();
+
+        const [cloudRecords, cloudMoods] = await Promise.all([
+          fetchCloudRecords(),
+          fetchCloudMoods()
+        ]);
+
+        const deletedRows = cloudRecords.filter((row) => row.deleted_at);
+        const cloudDeletedIds = new Set(deletedRows.map((row) => row.id));
+        state.deletedRecords = state.deletedRecords || {};
+        deletedRows.forEach((row) => {
+          state.deletedRecords[row.id] = row.deleted_at;
+        });
+        state.records = state.records.filter((record) => !cloudDeletedIds.has(record.id) && !state.deletedRecords[record.id]);
+
+        const recordsToUpload = state.records.map((record) => localRecordToCloud(record, user.id));
+        if (recordsToUpload.length) await upsertCloudRows("records", recordsToUpload, "id");
+
+        const localDeleted = Object.keys(state.deletedRecords || {});
+        if (localDeleted.length) {
+          await Promise.all(localDeleted.map((recordId) => markCloudRecordDeleted(recordId, state.deletedRecords[recordId])));
+        }
+
+        const moodsToUpload = buildMoodsToUpload(user.id, cloudMoods);
+        if (moodsToUpload.length) await upsertCloudRows("daily_moods", moodsToUpload, "user_id,mood_date");
+
+        const [latestRecords, latestMoods] = await Promise.all([
+          fetchCloudRecords(),
+          fetchCloudMoods()
+        ]);
+
+        applyCloudRecords(latestRecords);
+        applyCloudMoods(latestMoods);
+        state.lastSyncedAt = new Date().toISOString();
+        saveState();
+        syncStatus = `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
+        if (manual) showToast("云同步完成");
+      } catch (error) {
+        console.warn(error);
+        syncStatus = "同步失败，可继续本地记录";
+        if (manual) showToast("同步失败，记录仍保存在本机");
+      } finally {
+        syncBusy = false;
+        render();
+      }
+    }
+
+    async function ensureSessionUser() {
+      if (!authSession) throw new Error("Not signed in");
+      const now = Math.floor(Date.now() / 1000);
+      if (authSession.expiresAt && authSession.expiresAt - now < 90) {
+        await refreshAuthSession();
+      }
+
+      const user = await supabaseRequest("/auth/v1/user", { method: "GET" }, true);
+      currentUser = user && user.user ? user.user : user;
+      if (!currentUser || !currentUser.id) throw new Error("Cannot load user");
+      authSession.user = currentUser;
+      saveAuthSession();
+      return currentUser;
+    }
+
+    async function refreshAuthSession() {
+      const data = await supabaseRequest("/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        body: JSON.stringify({
+          refresh_token: authSession.refreshToken
+        })
+      }, false);
+
+      authSession = {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || authSession.refreshToken,
+        expiresAt: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
+        user: data.user || currentUser
+      };
+      currentUser = authSession.user || currentUser;
+      saveAuthSession();
+    }
+
+    async function supabaseRequest(path, options, includeAuth) {
+      const headers = Object.assign({
+        apikey: SUPABASE_PUBLISHABLE_KEY
+      }, options && options.headers ? options.headers : {});
+
+      if (includeAuth && authSession && authSession.accessToken) {
+        headers.Authorization = `Bearer ${authSession.accessToken}`;
+      }
+      if (options && options.body && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+      }
+
+      const response = await fetch(`${SUPABASE_URL}${path}`, Object.assign({}, options, { headers }));
+      const text = await response.text();
+      if (!response.ok) {
+        let message = text || response.statusText;
+        try {
+          const parsed = JSON.parse(text);
+          message = parsed.msg || parsed.message || parsed.error_description || message;
+        } catch (error) {}
+        throw new Error(message);
+      }
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        return text;
+      }
+    }
+
+    async function fetchCloudRecords() {
+      return await supabaseRequest("/rest/v1/records?select=*&order=record_date.asc,created_at.asc", {
+        method: "GET"
+      }, true) || [];
+    }
+
+    async function fetchCloudMoods() {
+      return await supabaseRequest("/rest/v1/daily_moods?select=*&order=mood_date.asc", {
+        method: "GET"
+      }, true) || [];
+    }
+
+    async function upsertCloudRows(table, rows, conflictTarget) {
+      return await supabaseRequest(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictTarget)}`, {
+        method: "POST",
+        headers: {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        body: JSON.stringify(rows)
+      }, true);
+    }
+
+    async function markCloudRecordDeleted(recordId, deletedAt) {
+      if (!isUuid(recordId)) return;
+      return await supabaseRequest(`/rest/v1/records?id=eq.${encodeURIComponent(recordId)}`, {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          deleted_at: deletedAt || new Date().toISOString()
+        })
+      }, true);
+    }
+
+    function buildMoodsToUpload(userId, cloudMoods) {
+      const cloudByDate = new Map(cloudMoods.map((row) => [row.mood_date, row]));
+      return Object.entries(state.dailyMood || {}).reduce((rows, [date, mood]) => {
+        if (!mood || !mood.emoji) return rows;
+        const cloudMood = cloudByDate.get(date);
+        const localTime = Date.parse(mood.updatedAt || "") || 0;
+        const cloudTime = cloudMood ? Date.parse(cloudMood.updated_at || "") || 0 : 0;
+        if (cloudMood && cloudTime > localTime) return rows;
+        rows.push({
+          user_id: userId,
+          mood_date: date,
+          mood_emoji: mood.emoji,
+          mood_label: mood.label || getMoodLabel(mood.emoji)
+        });
+        return rows;
+      }, []);
+    }
+
+    function applyCloudRecords(rows) {
+      const deleted = {};
+      const records = rows.reduce((items, row) => {
+        if (row.deleted_at) {
+          deleted[row.id] = row.deleted_at;
+          return items;
+        }
+        items.push({
+          id: row.id,
+          date: row.record_date,
+          meal: row.meal,
+          content: row.content,
+          createdAt: row.client_created_at || row.created_at,
+          syncedAt: row.updated_at
+        });
+        return items;
+      }, []);
+
+      state.deletedRecords = Object.assign({}, state.deletedRecords || {}, deleted);
+      state.records = records.sort((a, b) => a.date.localeCompare(b.date) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
+    function applyCloudMoods(rows) {
+      const moods = {};
+      rows.forEach((row) => {
+        moods[row.mood_date] = {
+          emoji: row.mood_emoji,
+          label: row.mood_label,
+          updatedAt: row.updated_at
+        };
+      });
+      state.dailyMood = moods;
+    }
+
+    function localRecordToCloud(record, userId) {
+      return {
+        id: record.id,
+        user_id: userId,
+        record_date: record.date,
+        meal: record.meal,
+        content: record.content,
+        client_created_at: record.createdAt || new Date().toISOString(),
+        deleted_at: null
+      };
+    }
+
+    function normalizeState() {
+      let changed = false;
+      state.deletedRecords = state.deletedRecords && typeof state.deletedRecords === "object" ? state.deletedRecords : {};
+      state.milestonesShown = state.milestonesShown && typeof state.milestonesShown === "object" ? state.milestonesShown : {};
+      state.dailyMood = state.dailyMood && typeof state.dailyMood === "object" ? state.dailyMood : {};
+
+      state.records = (Array.isArray(state.records) ? state.records : []).filter((record) => {
+        return record && record.date && record.meal && record.content && !state.deletedRecords[record.id];
+      }).map((record) => {
+        const next = Object.assign({}, record);
+        if (!isUuid(next.id)) {
+          next.id = createUuid();
+          changed = true;
+        }
+        if (!next.createdAt) {
+          next.createdAt = new Date().toISOString();
+          changed = true;
+        }
+        return next;
+      });
+
+      Object.keys(state.dailyMood).forEach((date) => {
+        const mood = state.dailyMood[date];
+        if (typeof mood === "string") {
+          state.dailyMood[date] = {
+            emoji: mood,
+            label: getMoodLabel(mood),
+            updatedAt: ""
+          };
+          changed = true;
+        } else if (mood && mood.emoji && !mood.label) {
+          mood.label = getMoodLabel(mood.emoji);
+          changed = true;
+        }
+      });
+
+      if (changed) saveState();
+    }
+
+    function getMoodLabel(emoji) {
+      const mood = moodOptions.find((item) => item.emoji === emoji);
+      return mood ? mood.label : "已记录";
+    }
+
+    function isUuid(value) {
+      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ""));
+    }
+
+    function createUuid() {
+      if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+      const bytes = new Uint8Array(16);
+      if (window.crypto && window.crypto.getRandomValues) {
+        window.crypto.getRandomValues(bytes);
+      } else {
+        for (let index = 0; index < bytes.length; index += 1) {
+          bytes[index] = Math.floor(Math.random() * 256);
+        }
+      }
+      bytes[6] = (bytes[6] & 0x0f) | 0x40;
+      bytes[8] = (bytes[8] & 0x3f) | 0x80;
+      const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+      return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10, 16).join("")}`;
     }
 
     function showEncouragement(content) {

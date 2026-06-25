@@ -1,4 +1,4 @@
-const CACHE_NAME = "dida-ji-cache-v3";
+const CACHE_NAME = "dida-ji-cache-v4";
 const APP_ASSETS = [
   "./",
   "./index.html",
