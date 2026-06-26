@@ -154,6 +154,7 @@
     .soft-card,
     .meal-card,
     .mood-card,
+    .bowel-card,
     .export-panel,
     .calendar-panel {
       background: rgba(255, 255, 255, 0.86);
@@ -440,6 +441,102 @@
       background: #FFFFFF;
       box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.34), var(--glow);
       transform: translateY(-2px);
+    }
+
+    .bowel-card {
+      padding: 14px;
+    }
+
+    .bowel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .bowel-header .selected-bowel {
+      color: var(--sea);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .bowel-options {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      align-items: center;
+    }
+
+    .bowel-button {
+      min-height: 66px;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
+      display: grid;
+      place-items: center;
+      box-shadow: none;
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .bowel-button img {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 13px;
+      filter: drop-shadow(0 8px 14px rgba(78, 104, 132, 0.14));
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .bowel-button.active {
+      background: transparent;
+      box-shadow: none;
+      transform: translateY(-2px);
+    }
+
+    .bowel-button.active img {
+      filter: drop-shadow(0 9px 16px rgba(43, 108, 176, 0.25));
+      transform: scale(1.03);
+    }
+
+    .bowel-history {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .bowel-record {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.62);
+      border: 1px solid rgba(99, 179, 237, 0.16);
+    }
+
+    .bowel-record-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #FFFFFF;
+      display: grid;
+      place-items: center;
+    }
+
+    .bowel-record-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .bowel-record p {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     .calendar-panel {
@@ -1124,12 +1221,21 @@
         gap: 6px;
       }
 
+      .bowel-options {
+        gap: 6px;
+      }
+
       .mood-button {
         min-height: 58px;
       }
 
       .mood-button span {
         font-size: 10px;
+      }
+
+      .bowel-button img {
+        width: 46px;
+        height: 46px;
       }
 
       .meal-options {
@@ -1194,6 +1300,8 @@
   <script>
     const STORAGE_KEY = "dida-ji-state-v1";
     const AUTH_STORAGE_KEY = "dida-ji-supabase-session-v1";
+    const AUTH_COOKIE_NAME = "dida_ji_supabase_session";
+    const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
     const SUPABASE_URL = "https://xbtztpxzgepkgbrpiodj.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_uVmdn4Sn_o0v6_gLoHY-bw_dPURE-bw";
     function getTodayKey() {
@@ -1213,6 +1321,39 @@
       { emoji: "😐", label: "一般般" },
       { emoji: "😣", label: "有些不适" },
       { emoji: "🤢", label: "很难受" }
+    ];
+
+    const bowelOptions = [
+      {
+        key: "hard-pebbles",
+        bristolRange: "1",
+        label: "硬颗粒",
+        icon: "./assets/2026-06-26-bowel-icon-hard-pebbles-from-Codex.png"
+      },
+      {
+        key: "lumpy-hard",
+        bristolRange: "2",
+        label: "块状偏硬",
+        icon: "./assets/2026-06-26-bowel-icon-lumpy-hard-from-Codex.png"
+      },
+      {
+        key: "smooth-formed",
+        bristolRange: "3-4",
+        label: "顺滑成形",
+        icon: "./assets/2026-06-26-bowel-icon-smooth-formed-from-Codex.png"
+      },
+      {
+        key: "soft-mushy",
+        bristolRange: "5-6",
+        label: "松软偏糊",
+        icon: "./assets/2026-06-26-bowel-icon-soft-mushy-from-Codex.png"
+      },
+      {
+        key: "watery",
+        bristolRange: "7",
+        label: "水样",
+        icon: "./assets/2026-06-26-bowel-icon-watery-from-Codex.png"
+      }
     ];
 
     const encouragementTemplates = [
@@ -1264,8 +1405,10 @@
     let syncBusy = false;
     let syncPending = false;
     let syncTimer = null;
+    let bowelCloudAvailable = true;
     let syncPanelOpen = false;
     let loginEmailDraft = localStorage.getItem("dida-ji-login-email") || "";
+    let loginCodeDraft = "";
     let activeTab = "today";
     let selectedMeal = "早餐";
     let calendarCursor = startOfMonth(new Date());
@@ -1313,9 +1456,11 @@
     function loadState() {
       const fallback = {
         records: [],
+        bowelRecords: [],
         dailyMood: {},
         milestonesShown: {},
         deletedRecords: {},
+        deletedBowelRecords: {},
         lastSyncedAt: ""
       };
 
@@ -1325,9 +1470,11 @@
         const parsed = JSON.parse(raw);
         return {
           records: Array.isArray(parsed.records) ? parsed.records : [],
+          bowelRecords: Array.isArray(parsed.bowelRecords) ? parsed.bowelRecords : [],
           dailyMood: parsed.dailyMood && typeof parsed.dailyMood === "object" ? parsed.dailyMood : {},
           milestonesShown: parsed.milestonesShown && typeof parsed.milestonesShown === "object" ? parsed.milestonesShown : {},
           deletedRecords: parsed.deletedRecords && typeof parsed.deletedRecords === "object" ? parsed.deletedRecords : {},
+          deletedBowelRecords: parsed.deletedBowelRecords && typeof parsed.deletedBowelRecords === "object" ? parsed.deletedBowelRecords : {},
           lastSyncedAt: parsed.lastSyncedAt || ""
         };
       } catch (error) {
@@ -1336,15 +1483,52 @@
     }
 
     function loadAuthSession() {
+      const savedSession = readStoredAuthSession();
+      if (savedSession) return savedSession;
+
+      const cookieSession = readCookieAuthSession();
+      if (cookieSession) {
+        try {
+          localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(cookieSession));
+        } catch (error) {}
+        return cookieSession;
+      }
+
+      return null;
+    }
+
+    function readStoredAuthSession() {
       try {
         const raw = localStorage.getItem(AUTH_STORAGE_KEY);
         if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !parsed.accessToken || !parsed.refreshToken) return null;
-        return parsed;
+        return normalizeAuthSession(JSON.parse(raw));
       } catch (error) {
         return null;
       }
+    }
+
+    function readCookieAuthSession() {
+      try {
+        const raw = readCookie(AUTH_COOKIE_NAME);
+        if (!raw) return null;
+        return normalizeAuthSession(JSON.parse(raw));
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function normalizeAuthSession(session) {
+      if (!session || !session.accessToken || !session.refreshToken) return null;
+      const user = session.user && session.user.id
+        ? { id: session.user.id, email: session.user.email || "" }
+        : null;
+
+      return {
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+        expiresAt: Number(session.expiresAt) || 0,
+        user
+      };
     }
 
     function saveState() {
@@ -1352,10 +1536,15 @@
     }
 
     function saveAuthSession() {
-      if (authSession) {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authSession));
+      const savedSession = normalizeAuthSession(authSession);
+      authSession = savedSession;
+      if (savedSession) {
+        const serialized = JSON.stringify(savedSession);
+        localStorage.setItem(AUTH_STORAGE_KEY, serialized);
+        writeCookie(AUTH_COOKIE_NAME, serialized, AUTH_COOKIE_MAX_AGE);
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        clearCookie(AUTH_COOKIE_NAME);
       }
     }
 
@@ -1420,12 +1609,17 @@
         <section class="sync-card" aria-label="登录并开启云同步">
           <div class="sync-copy">
             <div class="sync-title">登录后多端同步</div>
-            <p class="sync-note">输入邮箱，查收登录邮件；现在也可以继续本地记录。</p>
+            <p class="sync-note">从桌面图标打开时，输入邮件里的验证码，不用点邮件链接。</p>
           </div>
           <div class="sync-form">
             <input class="sync-input" type="email" inputmode="email" autocomplete="email" placeholder="你的邮箱" value="${escapeHtml(loginEmailDraft)}" data-action="login-email" aria-label="邮箱">
-            <button class="sync-button" type="button" data-action="send-login-link" ${disabled}>发送链接</button>
+            <button class="sync-button" type="button" data-action="send-login-link" ${disabled}>发送邮件</button>
           </div>
+          <div class="sync-form">
+            <input class="sync-input" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="输入验证码" value="${escapeHtml(loginCodeDraft)}" data-action="login-code" aria-label="验证码">
+            <button class="sync-button" type="button" data-action="verify-login-code" ${disabled}>登录</button>
+          </div>
+          <p class="sync-note">如果邮件里目前只有登录链接，需要先在 Supabase 邮件模板里加入验证码字段。</p>
           <button class="sync-link-button" type="button" data-action="close-sync-panel">收起</button>
         </section>
       `;
@@ -1434,6 +1628,8 @@
     function renderToday(stats) {
       const todayRecords = getRecordsByDate(getTodayKey());
       const todayMood = state.dailyMood[getTodayKey()];
+      const todayBowelRecords = getBowelRecordsByDate(getTodayKey());
+      const latestBowel = todayBowelRecords.length ? todayBowelRecords[todayBowelRecords.length - 1] : null;
       const milestone = getTodayMilestone(stats);
 
       return `
@@ -1471,6 +1667,29 @@
         </section>
 
         <section class="section-title">
+          <h2>大便情况</h2>
+          <span>${todayBowelRecords.length ? `${todayBowelRecords.length} 次` : "未记录"}</span>
+        </section>
+        <section class="bowel-card">
+          <div class="bowel-header">
+            <h3>今天的形态</h3>
+            <span class="selected-bowel">${latestBowel ? getBowelOptionLabel(latestBowel.typeKey) : "未选择"}</span>
+          </div>
+          <div class="bowel-options">
+            ${bowelOptions.map((option) => `
+              <button class="bowel-button ${latestBowel && latestBowel.typeKey === option.key ? "active" : ""}" type="button" data-action="add-bowel-record" data-type="${option.key}" aria-label="${option.label}">
+                <img src="${option.icon}" alt="">
+              </button>
+            `).join("")}
+          </div>
+          ${todayBowelRecords.length ? `
+            <div class="bowel-history">
+              ${todayBowelRecords.map(renderBowelRecordCard).join("")}
+            </div>
+          ` : ""}
+        </section>
+
+        <section class="section-title">
           <h2>小水滴进度</h2>
           <span>连续 ${stats.streak} 天</span>
         </section>
@@ -1497,11 +1716,31 @@
       `;
     }
 
+    function renderBowelRecordCard(record) {
+      const option = getBowelOption(record.typeKey);
+      const timeText = record.createdAt ? new Date(record.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "";
+      return `
+        <article class="bowel-record">
+          <div class="bowel-record-icon" aria-hidden="true">
+            <img src="${option.icon}" alt="">
+          </div>
+          <div class="meal-copy">
+            <div class="meal-top">
+              <div class="meal-meta">${timeText || "已记录"}</div>
+              <button class="delete-record-button" type="button" data-action="delete-bowel-record" data-id="${record.id}" aria-label="删除大便情况记录">删除</button>
+            </div>
+            <p>${option.label}</p>
+          </div>
+        </article>
+      `;
+    }
+
     function renderCalendar() {
       const monthLabel = `${calendarCursor.getFullYear()} 年 ${calendarCursor.getMonth() + 1} 月`;
       const cells = getCalendarCells(calendarCursor);
       const selectedRecords = getRecordsByDate(selectedDate);
       const selectedMood = state.dailyMood[selectedDate];
+      const selectedBowelRecords = getBowelRecordsByDate(selectedDate);
 
       return `
         <section class="calendar-panel">
@@ -1532,6 +1771,14 @@
                 </div>
               `).join("") : `<div class="empty-state"><span class="drop">💧</span><p>这一天还没有饮食记录。</p></div>`}
               <div class="detail-item">
+                <strong>大便情况</strong>
+                ${selectedBowelRecords.length ? `
+                  <div class="bowel-history">
+                    ${selectedBowelRecords.map(renderBowelRecordCard).join("")}
+                  </div>
+                ` : `<p>未记录</p>`}
+              </div>
+              <div class="detail-item">
                 <strong>今日感受</strong>
                 <p>${selectedMood ? `${selectedMood.emoji} ${selectedMood.label}` : "未记录"}</p>
               </div>
@@ -1544,8 +1791,9 @@
     function renderDayCell(cell) {
       const dateKey = toDateKey(cell.date);
       const hasRecord = getRecordsByDate(dateKey).length > 0;
+      const hasBowel = getBowelRecordsByDate(dateKey).length > 0;
       const mood = state.dailyMood[dateKey];
-      const marker = mood ? mood.emoji : hasRecord ? "💧" : "";
+      const marker = mood ? mood.emoji : hasBowel ? "●" : hasRecord ? "💧" : "";
       const classes = [
         "day-cell",
         cell.currentMonth ? "" : "other-month",
@@ -1565,12 +1813,14 @@
     function renderExport() {
       const range = getExportRange();
       const records = getRecordsInRange(range.start, range.end);
+      const bowelRecords = getBowelRecordsInRange(range.start, range.end);
       const moods = Object.keys(state.dailyMood).filter((date) => date >= range.start && date <= range.end).length;
+      const hasExportContent = records.length || bowelRecords.length || moods;
 
       return `
         <section class="export-panel">
           <p class="date-kicker">导出给医生、AI 或自己复盘</p>
-          <h2>饮食记录 Markdown</h2>
+          <h2>饮食与身体记录 Markdown</h2>
           <div class="range-grid">
             <button class="range-chip ${exportMode === "7" ? "active" : ""}" type="button" data-action="set-export-mode" data-mode="7">过去 7 天</button>
             <button class="range-chip ${exportMode === "30" ? "active" : ""}" type="button" data-action="set-export-mode" data-mode="30">过去 30 天</button>
@@ -1585,10 +1835,11 @@
           <div class="preview-box">
             记录范围：${range.start} 至 ${range.end}<br>
             饮食记录：${records.length} 条<br>
+            大便情况：${bowelRecords.length} 条<br>
             今日感受：${moods} 天
           </div>
           <div style="height:14px;"></div>
-          <button class="primary-action ripple-target" type="button" data-action="download-md" ${records.length ? "" : "disabled"}>下载 .md 文件</button>
+          <button class="primary-action ripple-target" type="button" data-action="download-md" ${hasExportContent ? "" : "disabled"}>下载 .md 文件</button>
         </section>
       `;
     }
@@ -1643,7 +1894,17 @@
             if (event.key === "Enter") sendLoginLink();
           });
         }
+        if (action === "login-code") {
+          node.addEventListener("input", () => {
+            loginCodeDraft = normalizeOtpCode(node.value);
+            node.value = loginCodeDraft;
+          });
+          node.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") verifyLoginCode();
+          });
+        }
         if (action === "send-login-link") node.addEventListener("click", sendLoginLink);
+        if (action === "verify-login-code") node.addEventListener("click", verifyLoginCode);
         if (action === "sync-now") node.addEventListener("click", () => syncNow(true));
         if (action === "sign-out") node.addEventListener("click", signOut);
         if (action === "set-mood") {
@@ -1658,6 +1919,9 @@
             render();
             queueSync();
           });
+        }
+        if (action === "add-bowel-record") {
+          node.addEventListener("click", () => addBowelRecord(node.dataset.type));
         }
         if (action === "prev-month") {
           node.addEventListener("click", () => {
@@ -1702,6 +1966,9 @@
         if (action === "download-md") node.addEventListener("click", downloadMarkdown);
         if (action === "delete-record") {
           node.addEventListener("click", () => deleteRecord(node.dataset.id));
+        }
+        if (action === "delete-bowel-record") {
+          node.addEventListener("click", () => deleteBowelRecord(node.dataset.id));
         }
       });
     }
@@ -1777,6 +2044,41 @@
       queueSync();
     }
 
+    function addBowelRecord(typeKey) {
+      const option = getBowelOption(typeKey);
+      const record = {
+        id: createUuid(),
+        date: getTodayKey(),
+        typeKey: option.key,
+        bristolRange: option.bristolRange,
+        label: option.label,
+        createdAt: new Date().toISOString()
+      };
+
+      state.bowelRecords = Array.isArray(state.bowelRecords) ? state.bowelRecords : [];
+      state.bowelRecords.push(record);
+      saveState();
+      showToast(`大便情况已记录：${option.label}`);
+      render();
+      queueSync();
+    }
+
+    function deleteBowelRecord(recordId) {
+      const record = (Array.isArray(state.bowelRecords) ? state.bowelRecords : []).find((item) => item.id === recordId);
+      if (!record) return;
+
+      const ok = window.confirm("确定删除这条大便情况记录吗？");
+      if (!ok) return;
+
+      state.deletedBowelRecords = state.deletedBowelRecords || {};
+      state.deletedBowelRecords[recordId] = new Date().toISOString();
+      state.bowelRecords = state.bowelRecords.filter((item) => item.id !== recordId);
+      saveState();
+      showToast("这条大便情况已删除");
+      render();
+      queueSync();
+    }
+
     function captureAuthRedirect() {
       const hash = window.location.hash && window.location.hash.startsWith("#")
         ? window.location.hash.slice(1)
@@ -1830,13 +2132,61 @@
             create_user: true
           })
         }, false);
-        showToast("登录邮件已发送，请查收邮箱");
-        syncStatus = "邮件已发送，等待登录";
+        showToast("邮件已发送，把验证码填回这里");
+        syncStatus = "邮件已发送，等待验证码";
       } catch (error) {
         console.warn(error);
         syncStatus = "登录邮件发送失败";
         showToast("发送失败，稍后再试");
       } finally {
+        syncBusy = false;
+        render();
+      }
+    }
+
+    async function verifyLoginCode() {
+      const emailInput = app.querySelector('[data-action="login-email"]');
+      const codeInput = app.querySelector('[data-action="login-code"]');
+      const email = (emailInput ? emailInput.value : loginEmailDraft).trim();
+      const token = normalizeOtpCode(codeInput ? codeInput.value : loginCodeDraft);
+
+      if (!email || !email.includes("@")) {
+        showToast("先输入邮箱地址");
+        return;
+      }
+      if (!token) {
+        showToast("请输入邮件里的验证码");
+        return;
+      }
+
+      loginEmailDraft = email;
+      loginCodeDraft = token;
+      localStorage.setItem("dida-ji-login-email", email);
+      syncBusy = true;
+      syncStatus = "正在验证邮箱...";
+      render();
+
+      try {
+        const data = await supabaseRequest("/auth/v1/verify", {
+          method: "POST",
+          body: JSON.stringify({
+            email,
+            token,
+            type: "email"
+          })
+        }, false);
+
+        applyAuthResponse(data);
+        loginCodeDraft = "";
+        syncStatus = "登录成功，准备同步...";
+        showToast("桌面入口已登录");
+        syncBusy = false;
+        render();
+        await syncNow(false);
+      } catch (error) {
+        console.warn(error);
+        syncStatus = "验证码登录失败";
+        showToast("验证码不正确或已过期");
         syncBusy = false;
         render();
       }
@@ -1890,9 +2240,10 @@
         const user = await ensureSessionUser();
         normalizeState();
 
-        const [cloudRecords, cloudMoods] = await Promise.all([
+        const [cloudRecords, cloudMoods, cloudBowelRecords] = await Promise.all([
           fetchCloudRecords(),
-          fetchCloudMoods()
+          fetchCloudMoods(),
+          fetchCloudBowelRecords()
         ]);
 
         const deletedRows = cloudRecords.filter((row) => row.deleted_at);
@@ -1914,17 +2265,39 @@
         const moodsToUpload = buildMoodsToUpload(user.id, cloudMoods);
         if (moodsToUpload.length) await upsertCloudRows("daily_moods", moodsToUpload, "user_id,mood_date");
 
-        const [latestRecords, latestMoods] = await Promise.all([
+        if (bowelCloudAvailable) {
+          const deletedBowelRows = cloudBowelRecords.filter((row) => row.deleted_at);
+          const cloudDeletedBowelIds = new Set(deletedBowelRows.map((row) => row.id));
+          state.deletedBowelRecords = state.deletedBowelRecords || {};
+          deletedBowelRows.forEach((row) => {
+            state.deletedBowelRecords[row.id] = row.deleted_at;
+          });
+          state.bowelRecords = state.bowelRecords.filter((record) => !cloudDeletedBowelIds.has(record.id) && !state.deletedBowelRecords[record.id]);
+
+          const bowelRecordsToUpload = state.bowelRecords.map((record) => localBowelRecordToCloud(record, user.id));
+          if (bowelRecordsToUpload.length) await upsertCloudRows("bowel_records", bowelRecordsToUpload, "id");
+
+          const localDeletedBowel = Object.keys(state.deletedBowelRecords || {});
+          if (localDeletedBowel.length) {
+            await Promise.all(localDeletedBowel.map((recordId) => markCloudBowelRecordDeleted(recordId, state.deletedBowelRecords[recordId])));
+          }
+        }
+
+        const [latestRecords, latestMoods, latestBowelRecords] = await Promise.all([
           fetchCloudRecords(),
-          fetchCloudMoods()
+          fetchCloudMoods(),
+          bowelCloudAvailable ? fetchCloudBowelRecords() : Promise.resolve([])
         ]);
 
         applyCloudRecords(latestRecords);
         applyCloudMoods(latestMoods);
+        if (bowelCloudAvailable) applyCloudBowelRecords(latestBowelRecords);
         state.lastSyncedAt = new Date().toISOString();
         saveState();
-        syncStatus = `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`;
-        if (manual) showToast("云同步完成");
+        syncStatus = bowelCloudAvailable
+          ? `已同步 ${new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}`
+          : "饮食已同步，大便情况待建表";
+        if (manual) showToast(bowelCloudAvailable ? "云同步完成" : "基础同步完成，大便情况先保存在本机");
       } catch (error) {
         console.warn(error);
         syncStatus = "同步失败，可继续本地记录";
@@ -1942,7 +2315,7 @@
     async function ensureSessionUser() {
       if (!authSession) throw new Error("Not signed in");
       const now = Math.floor(Date.now() / 1000);
-      if (authSession.expiresAt && authSession.expiresAt - now < 90) {
+      if (!authSession.expiresAt || authSession.expiresAt - now < 90) {
         await refreshAuthSession();
       }
 
@@ -1967,6 +2340,22 @@
         refreshToken: data.refresh_token || authSession.refreshToken,
         expiresAt: Math.floor(Date.now() / 1000) + Number(data.expires_in || 3600),
         user: data.user || currentUser
+      };
+      currentUser = authSession.user || currentUser;
+      saveAuthSession();
+    }
+
+    function applyAuthResponse(data) {
+      const session = data && data.session ? data.session : data;
+      if (!session || !session.access_token || !session.refresh_token) {
+        throw new Error("Cannot create auth session");
+      }
+
+      authSession = {
+        accessToken: session.access_token,
+        refreshToken: session.refresh_token,
+        expiresAt: Number(session.expires_at) || Math.floor(Date.now() / 1000) + Number(session.expires_in || 3600),
+        user: session.user || data.user || currentUser || null
       };
       currentUser = authSession.user || currentUser;
       saveAuthSession();
@@ -2014,6 +2403,23 @@
       }, true) || [];
     }
 
+    async function fetchCloudBowelRecords() {
+      try {
+        const rows = await supabaseRequest("/rest/v1/bowel_records?select=*&order=record_date.asc,client_created_at.asc", {
+          method: "GET"
+        }, true);
+        bowelCloudAvailable = true;
+        return rows || [];
+      } catch (error) {
+        if (isMissingBowelTableError(error)) {
+          bowelCloudAvailable = false;
+          console.warn(error);
+          return [];
+        }
+        throw error;
+      }
+    }
+
     async function upsertCloudRows(table, rows, conflictTarget) {
       return await supabaseRequest(`/rest/v1/${table}?on_conflict=${encodeURIComponent(conflictTarget)}`, {
         method: "POST",
@@ -2027,6 +2433,19 @@
     async function markCloudRecordDeleted(recordId, deletedAt) {
       if (!isUuid(recordId)) return;
       return await supabaseRequest(`/rest/v1/records?id=eq.${encodeURIComponent(recordId)}`, {
+        method: "PATCH",
+        headers: {
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify({
+          deleted_at: deletedAt || new Date().toISOString()
+        })
+      }, true);
+    }
+
+    async function markCloudBowelRecordDeleted(recordId, deletedAt) {
+      if (!isUuid(recordId) || !bowelCloudAvailable) return;
+      return await supabaseRequest(`/rest/v1/bowel_records?id=eq.${encodeURIComponent(recordId)}`, {
         method: "PATCH",
         headers: {
           Prefer: "return=minimal"
@@ -2089,6 +2508,30 @@
       state.dailyMood = moods;
     }
 
+    function applyCloudBowelRecords(rows) {
+      const deleted = {};
+      const records = rows.reduce((items, row) => {
+        if (row.deleted_at) {
+          deleted[row.id] = row.deleted_at;
+          return items;
+        }
+        const option = getBowelOption(row.type_key);
+        items.push({
+          id: row.id,
+          date: row.record_date,
+          typeKey: option.key,
+          bristolRange: row.bristol_range || option.bristolRange,
+          label: row.label || option.label,
+          createdAt: row.client_created_at || row.created_at,
+          syncedAt: row.updated_at
+        });
+        return items;
+      }, []);
+
+      state.deletedBowelRecords = Object.assign({}, state.deletedBowelRecords || {}, deleted);
+      state.bowelRecords = records.sort((a, b) => a.date.localeCompare(b.date) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
     function localRecordToCloud(record, userId) {
       return {
         id: record.id,
@@ -2101,9 +2544,33 @@
       };
     }
 
+    function localBowelRecordToCloud(record, userId) {
+      const option = getBowelOption(record.typeKey);
+      return {
+        id: record.id,
+        user_id: userId,
+        record_date: record.date,
+        type_key: option.key,
+        bristol_range: option.bristolRange,
+        label: option.label,
+        client_created_at: record.createdAt || new Date().toISOString(),
+        deleted_at: null
+      };
+    }
+
+    function isMissingBowelTableError(error) {
+      const message = String(error && error.message ? error.message : error || "").toLowerCase();
+      return message.includes("bowel_records") && (
+        message.includes("does not exist") ||
+        message.includes("could not find") ||
+        message.includes("not found")
+      );
+    }
+
     function normalizeState() {
       let changed = false;
       state.deletedRecords = state.deletedRecords && typeof state.deletedRecords === "object" ? state.deletedRecords : {};
+      state.deletedBowelRecords = state.deletedBowelRecords && typeof state.deletedBowelRecords === "object" ? state.deletedBowelRecords : {};
       state.milestonesShown = state.milestonesShown && typeof state.milestonesShown === "object" ? state.milestonesShown : {};
       state.dailyMood = state.dailyMood && typeof state.dailyMood === "object" ? state.dailyMood : {};
 
@@ -2113,6 +2580,34 @@
         const next = Object.assign({}, record);
         if (!isUuid(next.id)) {
           next.id = createUuid();
+          changed = true;
+        }
+        if (!next.createdAt) {
+          next.createdAt = new Date().toISOString();
+          changed = true;
+        }
+        return next;
+      });
+
+      state.bowelRecords = (Array.isArray(state.bowelRecords) ? state.bowelRecords : []).filter((record) => {
+        return record && record.date && record.typeKey && !state.deletedBowelRecords[record.id];
+      }).map((record) => {
+        const next = Object.assign({}, record);
+        const option = bowelOptions.find((item) => item.key === next.typeKey) || bowelOptions[2];
+        if (!isUuid(next.id)) {
+          next.id = createUuid();
+          changed = true;
+        }
+        if (next.typeKey !== option.key) {
+          next.typeKey = option.key;
+          changed = true;
+        }
+        if (next.bristolRange !== option.bristolRange) {
+          next.bristolRange = option.bristolRange;
+          changed = true;
+        }
+        if (next.label !== option.label) {
+          next.label = option.label;
           changed = true;
         }
         if (!next.createdAt) {
@@ -2278,6 +2773,26 @@
         .sort((a, b) => a.date.localeCompare(b.date) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
     }
 
+    function getBowelOption(typeKey) {
+      return bowelOptions.find((option) => option.key === typeKey) || bowelOptions[2];
+    }
+
+    function getBowelOptionLabel(typeKey) {
+      return getBowelOption(typeKey).label;
+    }
+
+    function getBowelRecordsByDate(dateKey) {
+      return (Array.isArray(state.bowelRecords) ? state.bowelRecords : [])
+        .filter((record) => record.date === dateKey)
+        .sort((a, b) => String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
+    function getBowelRecordsInRange(start, end) {
+      return (Array.isArray(state.bowelRecords) ? state.bowelRecords : [])
+        .filter((record) => record.date >= start && record.date <= end)
+        .sort((a, b) => a.date.localeCompare(b.date) || String(a.createdAt || "").localeCompare(String(b.createdAt || "")));
+    }
+
     function getExportRange() {
       if (exportMode === "30") {
         return { start: shiftDate(getTodayKey(), -29), end: getTodayKey() };
@@ -2298,7 +2813,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `滴答记-饮食记录-${range.start}_至_${range.end}.md`;
+      link.download = `滴答记-饮食与身体记录-${range.start}_至_${range.end}.md`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -2308,7 +2823,7 @@
 
     function buildMarkdown(start, end) {
       const lines = [
-        "# 滴答记 · 饮食记录",
+        "# 滴答记 · 饮食与身体记录",
         `导出时间：${getTodayKey()}`,
         `记录范围：${start} 至 ${end}`,
         "",
@@ -2319,8 +2834,9 @@
       const dates = collectDateRange(start, end).reverse();
       dates.forEach((date) => {
         const records = getRecordsByDate(date);
+        const bowelRecords = getBowelRecordsByDate(date);
         const mood = state.dailyMood[date];
-        if (!records.length && !mood) return;
+        if (!records.length && !bowelRecords.length && !mood) return;
 
         lines.push(`## ${date}`, "");
         mealOptions.forEach((meal) => {
@@ -2330,6 +2846,15 @@
           lines.push(mealRecords.map((record) => record.content).join("\n\n"));
           lines.push("");
         });
+        if (bowelRecords.length) {
+          lines.push("**大便情况**");
+          bowelRecords.forEach((record) => {
+            const option = getBowelOption(record.typeKey);
+            const timeText = record.createdAt ? new Date(record.createdAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "已记录";
+            lines.push(`- ${timeText}：${option.label}`);
+          });
+          lines.push("");
+        }
         lines.push(`今日感受：${mood ? `${mood.emoji} ${mood.label}` : "未记录"}`, "", "---", "");
       });
 
@@ -2410,6 +2935,10 @@
       return `${text.slice(0, 18)}…`;
     }
 
+    function normalizeOtpCode(value) {
+      return String(value || "").replace(/[^0-9a-z]/gi, "").slice(0, 12);
+    }
+
     function hashString(value) {
       let hash = 0;
       for (let index = 0; index < value.length; index += 1) {
@@ -2426,6 +2955,29 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function readCookie(name) {
+      const prefix = `${name}=`;
+      const match = document.cookie
+        .split(";")
+        .map((part) => part.trim())
+        .find((part) => part.startsWith(prefix));
+      return match ? decodeURIComponent(match.slice(prefix.length)) : "";
+    }
+
+    function writeCookie(name, value, maxAge) {
+      try {
+        const secure = location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax${secure}`;
+      } catch (error) {}
+    }
+
+    function clearCookie(name) {
+      try {
+        const secure = location.protocol === "https:" ? "; Secure" : "";
+        document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax${secure}`;
+      } catch (error) {}
     }
 
     function showToast(message) {
