@@ -114,6 +114,18 @@
       letter-spacing: 0;
     }
 
+    .topbar h1 {
+      color: var(--sea);
+      font-weight: 800;
+      line-height: 1.18;
+    }
+
+    .topbar h1 .greeting-icon {
+      margin-right: 4px;
+      font-size: 21px;
+      vertical-align: -1px;
+    }
+
     h2 {
       font-size: 18px;
       line-height: 1.3;
@@ -480,23 +492,12 @@
     }
 
     .bowel-button img {
-      width: 52px;
-      height: 52px;
+      width: 58px;
+      height: 58px;
       object-fit: cover;
-      border-radius: 13px;
+      border-radius: 14px;
       filter: drop-shadow(0 8px 14px rgba(78, 104, 132, 0.14));
       transition: transform 180ms ease, filter 180ms ease;
-    }
-
-    .bowel-button.active {
-      background: transparent;
-      box-shadow: none;
-      transform: translateY(-2px);
-    }
-
-    .bowel-button.active img {
-      filter: drop-shadow(0 9px 16px rgba(43, 108, 176, 0.25));
-      transform: scale(1.03);
     }
 
     .bowel-history {
@@ -537,6 +538,88 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.4;
+    }
+
+    .progress-summary-card {
+      position: relative;
+      padding: 14px;
+      border-radius: 18px;
+      color: var(--ink);
+      background:
+        linear-gradient(135deg, rgba(234, 246, 255, 0.78), rgba(255, 255, 255, 0.82) 54%, rgba(253, 246, 227, 0.72));
+      border: 1px solid rgba(99, 179, 237, 0.18);
+      box-shadow: 0 10px 26px rgba(43, 108, 176, 0.08);
+      overflow: hidden;
+    }
+
+    .progress-summary-card::after {
+      content: none;
+    }
+
+    .progress-summary-main {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .progress-drop {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .progress-copy strong {
+      display: block;
+      color: var(--sea);
+      font-size: 21px;
+      line-height: 1.15;
+    }
+
+    .progress-copy span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .progress-metrics {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .progress-metric {
+      min-height: 52px;
+      padding: 8px 7px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.58);
+      box-shadow: inset 0 0 0 1px rgba(99, 179, 237, 0.12);
+      display: grid;
+      align-content: center;
+      gap: 3px;
+      text-align: center;
+    }
+
+    .progress-metric b {
+      color: var(--sea);
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .progress-metric span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.2;
     }
 
     .calendar-panel {
@@ -1294,8 +1377,8 @@
       }
 
       .bowel-button img {
-        width: 46px;
-        height: 46px;
+        width: 52px;
+        height: 52px;
       }
 
       .meal-options {
@@ -1480,6 +1563,7 @@
     let syncTimer = null;
     let bowelCloudAvailable = true;
     let pendingBowelMilestone = null;
+    let currentMilestone = null;
     let syncPanelOpen = false;
     let loginEmailDraft = localStorage.getItem("dida-ji-login-email") || "";
     let loginCodeDraft = "";
@@ -1645,7 +1729,7 @@
         <header class="topbar">
           <div>
             <p class="date-kicker">${dateText}</p>
-            <h1>${getGreeting()}，今天也慢慢来</h1>
+            <h1><span class="greeting-icon" aria-hidden="true">🌤️</span>${getGreeting()}，今天也慢慢来</h1>
           </div>
           <button class="brand-drop ${syncPanelOpen ? "active" : ""}" type="button" data-action="toggle-sync-panel" aria-label="账号与云同步" aria-expanded="${syncPanelOpen ? "true" : "false"}">
             <span aria-hidden="true">💧</span>
@@ -1703,14 +1787,13 @@
       const todayRecords = getRecordsByDate(getTodayKey());
       const todayMood = state.dailyMood[getTodayKey()];
       const todayBowelRecords = getBowelRecordsByDate(getTodayKey());
-      const latestBowel = todayBowelRecords.length ? todayBowelRecords[todayBowelRecords.length - 1] : null;
+      const bowelEnergyCount = getBowelEnergyCount();
       const milestone = getTodayMilestone(stats);
 
       return `
         ${milestone ? `<div class="soft-card milestone-strip"><strong>${milestone.icon} ${milestone.title}：${milestone.message}</strong></div>` : ""}
         <section class="section-title">
           <h2>今日饮食</h2>
-          <span>${todayRecords.length} 条记录</span>
         </section>
         <div class="today-grid">
           ${todayRecords.length ? todayRecords.map(renderMealCard).join("") : `
@@ -1742,16 +1825,15 @@
 
         <section class="section-title">
           <h2>大便情况</h2>
-          <span>${todayBowelRecords.length ? `${todayBowelRecords.length} 次` : "未记录"}</span>
         </section>
         <section class="bowel-card">
           <div class="bowel-header">
             <h3>今天的形态</h3>
-            <span class="selected-bowel">${latestBowel ? getBowelOptionLabel(latestBowel.typeKey) : "未选择"}</span>
+            <span class="selected-bowel">${todayBowelRecords.length ? "有记录" : "没记录"}</span>
           </div>
           <div class="bowel-options">
             ${bowelOptions.map((option) => `
-              <button class="bowel-button ${latestBowel && latestBowel.typeKey === option.key ? "active" : ""}" type="button" data-action="add-bowel-record" data-type="${option.key}" aria-label="${option.label}">
+              <button class="bowel-button" type="button" data-action="add-bowel-record" data-type="${option.key}" aria-label="${option.label}">
                 <img src="${option.icon}" alt="">
               </button>
             `).join("")}
@@ -1765,10 +1847,26 @@
 
         <section class="section-title">
           <h2>小水滴进度</h2>
-          <span>连续 ${stats.streak} 天</span>
+          <span>汇总</span>
         </section>
-        <section class="soft-card" style="padding:14px;">
-          <p class="tiny-note">累计 ${stats.total} 条饮食记录。每一滴都算数，哪怕只是今天的一小口。</p>
+        <section class="progress-summary-card">
+          <div class="progress-summary-main">
+            <div class="progress-drop" aria-hidden="true">💧</div>
+            <div class="progress-copy">
+              <strong>小水滴在认真计数</strong>
+              <span>有饮食或大便记录的一天，就算一滴进度。</span>
+            </div>
+          </div>
+          <div class="progress-metrics" aria-label="记录汇总">
+            <div class="progress-metric">
+              <b>${stats.streak}</b>
+              <span>连续天数</span>
+            </div>
+            <div class="progress-metric">
+              <b>${bowelEnergyCount}</b>
+              <span>彩蛋能量</span>
+            </div>
+          </div>
         </section>
       `;
     }
@@ -2801,6 +2899,10 @@
       return null;
     }
 
+    function getBowelEnergyCount() {
+      return Object.keys(state.milestonesShown || {}).filter((key) => /^bowel-\d+$/.test(key)).length;
+    }
+
     function showPendingMilestone() {
       const pending = getPendingMilestone();
       if (pending) showMilestone(pending);
@@ -2824,11 +2926,14 @@
         kind: "bowel-sparkle",
         icon: "✨",
         title: `第 ${total} 次身体线索`,
-        message: "连续记录 5 次大便情况，小彩蛋解锁。身体的节奏正在变得更清楚。"
+        message: "连续记录 5 次大便情况，小彩蛋解锁。身体的节奏正在变得更清楚。",
+        buttonText: "收进能量罐",
+        collectMessage: "彩蛋能量 +1，已存进肚子能量罐。"
       };
     }
 
     function showMilestone(milestone) {
+      currentMilestone = milestone;
       state.milestonesShown[milestone.key] = true;
       saveState();
 
@@ -2843,7 +2948,7 @@
             <h2>${milestone.title}</h2>
             <p>${milestone.message}</p>
             <div style="height:14px;"></div>
-            <button class="primary-action ripple-target" type="button" data-close-milestone>收下这滴能量</button>
+            <button class="primary-action ripple-target" type="button" data-close-milestone>${milestone.buttonText || "收下这滴能量"}</button>
           </div>
         </section>
       `;
@@ -2853,15 +2958,23 @@
     }
 
     function closeMilestone() {
+      const milestone = currentMilestone;
+      currentMilestone = null;
       milestoneModal.classList.remove("open");
       milestoneModal.setAttribute("aria-hidden", "true");
       milestoneModal.innerHTML = "";
       render();
+      if (milestone && milestone.collectMessage) {
+        showToast(milestone.collectMessage);
+      }
     }
 
     function getStats() {
       const total = state.records.length;
-      const recordDates = [...new Set(state.records.map((record) => record.date))].sort();
+      const recordDates = [...new Set([
+        ...state.records.map((record) => record.date),
+        ...(Array.isArray(state.bowelRecords) ? state.bowelRecords.map((record) => record.date) : [])
+      ])].sort();
       let streak = 0;
       let cursor = getTodayKey();
 
