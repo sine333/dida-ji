@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7fbff" />
+  <title>滴答记 · 食物查询 · v0.5.3 255数据版</title>
+  <link rel="icon" href="./assets/2026-09-17-滴答记水滴标识-from Codex.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #086de8;
+      --blue-deep: #17389f;
+      --blue-soft: #eaf4ff;
+      --ink: #173b99;
+      --muted: #5f70a8;
+      --surface: rgba(255, 255, 255, 0.9);
+      --line: rgba(67, 105, 181, 0.13);
+      --good: #168f80;
+      --good-soft: #dff6ef;
+      --caution: #b87600;
+      --caution-soft: #fff0c7;
+      --hold: #bd5146;
+      --hold-soft: #ffe2dd;
+      --shadow: 0 20px 54px rgba(39, 92, 165, 0.14);
+      color-scheme: light;
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: #f5faff; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 4%, rgba(130, 221, 255, 0.22), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(255, 224, 164, 0.24), transparent 30%),
+        linear-gradient(180deg, #fcfeff 0%, #f8fbff 48%, #eef6ff 100%);
+    }
+
+    button, input, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    h1, h2, h3, p { margin: 0; }
+    .material-symbols-rounded { font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
+
+    .page-shell {
+      position: relative;
+      width: min(100%, 540px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(34px, env(safe-area-inset-top)) 26px calc(112px + env(safe-area-inset-bottom));
+    }
+
+    .page-shell::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      top: -150px;
+      left: 50%;
+      width: min(520px, 100vw);
+      height: min(520px, 100vw);
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: repeating-radial-gradient(circle, rgba(61, 123, 218, 0.075) 0 1px, transparent 1px 40px);
+      pointer-events: none;
+    }
+
+    .page-content { position: relative; z-index: 1; }
+
+    .brand-mark {
+      width: 44px;
+      height: 51px;
+      margin: 0 auto 24px;
+      display: block;
+      filter: drop-shadow(0 10px 16px rgba(29, 104, 221, 0.17));
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: var(--blue);
+      font-size: 29px;
+      line-height: 1.18;
+      font-weight: 850;
+      text-align: center;
+      letter-spacing: -0.03em;
+    }
+
+    .search-shell {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 58px;
+      padding: 7px 8px 7px 17px;
+      border: 1px solid rgba(76, 120, 198, 0.12);
+      border-radius: 25px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: 0 14px 34px rgba(45, 95, 159, 0.12), inset 0 0 0 1px rgba(255,255,255,.82);
+      backdrop-filter: blur(16px);
+    }
+
+    .search-shell > .material-symbols-rounded { color: #48579b; font-size: 25px; }
+    .search-shell input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      color: #18356f;
+      background: transparent;
+      font-size: 17px;
+      font-weight: 750;
+    }
+    .search-shell input::placeholder { color: rgba(59, 75, 139, 0.43); }
+
+    .clear-button {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: #9daee2;
+      background: transparent;
+      border-radius: 50%;
+    }
+
+    .search-button {
+      width: 54px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      color: white;
+      border-radius: 20px;
+      background: linear-gradient(135deg, #3d59e5, #2fa6ff);
+      box-shadow: 0 9px 22px rgba(44, 112, 225, 0.22);
+    }
+    .search-button .material-symbols-rounded { font-size: 28px; }
+
+    .hint-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 8px 24px;
+    }
+    .hint-chip {
+      min-height: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 10px;
+      color: var(--blue);
+      border-radius: 999px;
+      background: rgba(220, 236, 255, 0.68);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+    .hint-chip .material-symbols-rounded { font-size: 17px; }
+
+    .match-choice {
+      margin-bottom: 20px;
+      padding: 18px;
+      border: 1px solid rgba(67, 105, 181, .13);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .82);
+      box-shadow: 0 14px 34px rgba(45, 95, 159, .1);
+      backdrop-filter: blur(16px);
+    }
+
+    .match-choice p {
+      color: #3654a8;
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 760;
+    }
+
+    .match-options {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+    }
+
+    .match-option {
+      min-height: 46px;
+      padding: 9px 12px;
+      color: #2453b8;
+      border: 1px solid rgba(52, 101, 193, .12);
+      border-radius: 15px;
+      background: #eef5ff;
+      font-weight: 800;
+      text-align: left;
+    }
+
+    .match-option small {
+      display: block;
+      margin-top: 2px;
+      color: #7282b7;
+      font-size: 11px;
+      font-weight: 650;
+    }
+
+    .result-card {
+      padding: 26px 24px 22px;
+      border: 1px solid rgba(255,255,255,.88);
+      border-radius: 30px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .result-hero {
+      display: grid;
+      grid-template-columns: minmax(170px, 42%) minmax(0, 1fr);
+      gap: 22px;
+      align-items: center;
+      min-height: 174px;
+    }
+
+    .food-visual {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 44% 56% 48% 52% / 50% 44% 56% 50%;
+      isolation: isolate;
+    }
+
+    .food-visual::before,
+    .food-visual::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .food-visual::before {
+      z-index: -2;
+      inset: 13% 8% 8% 12%;
+      border-radius: 50% 42% 48% 46%;
+      transform: rotate(-7deg);
+      background: var(--caution-soft);
+      box-shadow: inset 0 0 0 1px rgba(209, 153, 31, 0.09);
+    }
+
+    .food-visual::after {
+      z-index: -1;
+      inset: 22% 15% 13% 18%;
+      border: 1px solid rgba(190, 132, 0, 0.12);
+      border-radius: 50%;
+      transform: rotate(11deg);
+    }
+
+    .food-visual.good::before { background: var(--good-soft); }
+    .food-visual.good::after { border-color: rgba(22, 143, 128, 0.14); }
+    .food-visual.hold::before { background: var(--hold-soft); }
+    .food-visual.hold::after { border-color: rgba(189, 81, 70, 0.14); }
+
+    .food-visual img {
+      position: relative;
+      z-index: 2;
+      width: 94%;
+      height: 88%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 12px rgba(56, 68, 99, 0.15));
+    }
+
+    .state-doodle {
+      position: absolute;
+      z-index: 3;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+    .state-doodle path { fill: none; stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; }
+    .doodle-good, .doodle-hold { display: none; }
+    .doodle-caution { color: #efbd3f; }
+    .food-visual.good .doodle-caution, .food-visual.hold .doodle-caution { display: none; }
+    .food-visual.good .doodle-good { display: block; color: #55c9aa; }
+    .food-visual.hold .doodle-hold { display: block; color: #e67f72; }
+
+    .fallback-food-icon { position: relative; z-index: 2; color: var(--blue); font-size: 58px; }
+    .result-copy { min-width: 0; }
+    .result-name { margin-bottom: 8px; color: #31468f; font-size: 16px; font-weight: 760; }
+
+    .verdict {
+      display: inline-flex;
+      min-height: 46px;
+      align-items: center;
+      padding: 7px 19px;
+      color: var(--caution);
+      border-radius: 999px;
+      background: linear-gradient(135deg, #fff7df, var(--caution-soft));
+      font-size: 23px;
+      font-weight: 900;
+      letter-spacing: 0.01em;
+    }
+    .verdict.good { color: var(--good); background: var(--good-soft); }
+    .verdict.hold { color: var(--hold); background: var(--hold-soft); }
+
+    .encouragement { margin-top: 10px; color: #4459a3; font-size: 13px; line-height: 1.6; }
+    .result-context { margin-top: 10px; color: #7381ad; font-size: 11px; line-height: 1.45; }
+
+    .status-scale {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-top: 23px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .status-step {
+      min-width: 0;
+      min-height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 7px;
+      color: #6675a5;
+      border: 1px solid transparent;
+      border-radius: 15px;
+      background: rgba(246, 249, 255, 0.82);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .status-dot { width: 13px; height: 13px; flex: 0 0 auto; border-radius: 50%; background: #c8d0e3; }
+    .status-step[data-tone="good"] .status-dot { background: #8ce0cf; }
+    .status-step[data-tone="caution"] .status-dot { background: #ffc83b; }
+    .status-step[data-tone="hold"] .status-dot { background: #ef8a7f; }
+    .status-step.selected[data-tone="good"] { color: var(--good); border-color: #8dd8ca; background: #f0fbf7; }
+    .status-step.selected[data-tone="caution"] { color: var(--caution); border-color: #f5bd27; background: #fffaf0; }
+    .status-step.selected[data-tone="hold"] { color: var(--hold); border-color: #e99389; background: #fff5f3; }
+
+    .reason-panel {
+      margin-top: 23px;
+      padding: 19px 20px 18px;
+      border: 1px solid rgba(54, 109, 208, 0.1);
+      border-radius: 21px;
+      background: linear-gradient(145deg, rgba(236, 246, 255, 0.92), rgba(247, 251, 255, 0.88));
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      color: #153ca7;
+      font-size: 16px;
+      font-weight: 900;
+    }
+    .section-heading .material-symbols-rounded { font-size: 21px; color: var(--blue); }
+
+    .reason-list, .try-list { margin: 13px 0 0; padding-left: 19px; color: #4f64a6; font-size: 13px; line-height: 1.65; }
+    .reason-list li + li, .try-list li + li { margin-top: 7px; }
+    .reason-list li::marker { color: #62a8ed; }
+
+    .try-panel { margin-top: 21px; padding: 0 3px; }
+    .try-panel .section-heading { color: #21439c; }
+    .try-list { color: #596ba5; }
+    .try-list li::marker { color: #ffc13b; }
+
+    .action-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 11px;
+    }
+    .secondary-action, .library-link {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      color: #2453b8;
+      border-radius: 999px;
+      background: #eef5ff;
+      font-size: 13px;
+      font-weight: 820;
+    }
+    .secondary-action { border: 1px solid rgba(52, 101, 193, 0.12); }
+    .secondary-action .material-symbols-rounded, .library-link .material-symbols-rounded { font-size: 18px; }
+
+    .disclaimer {
+      margin-top: 20px;
+      padding-top: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: #6879ae;
+      border-top: 1px solid var(--line);
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: center;
+    }
+    .disclaimer .material-symbols-rounded { flex: 0 0 auto; font-size: 18px; }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 30;
+      left: 50%;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: min(100% - 24px, 496px);
+      min-height: 62px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .88);
+      box-shadow: 0 14px 36px rgba(43, 108, 176, .16);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-button {
+      min-height: 46px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      color: var(--muted);
+      border-radius: 16px;
+      background: transparent;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .nav-button b {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 500;
+    }
+
+    .nav-button.active {
+      color: var(--blue);
+      background: rgba(234, 246, 255, .92);
+    }
+
+    .nav-button:focus-visible {
+      outline: 3px solid rgba(17, 115, 238, .26);
+      outline-offset: 2px;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 50;
+      left: 50%;
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      max-width: calc(100vw - 36px);
+      padding: 11px 18px;
+      color: white;
+      border-radius: 999px;
+      background: rgba(18, 42, 103, .92);
+      box-shadow: 0 12px 30px rgba(18, 42, 103, .25);
+      opacity: 0;
+      transform: translate(-50%, 14px);
+      transition: 180ms ease;
+      pointer-events: none;
+      font-size: 13px;
+    }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (max-width: 480px) {
+      .page-shell { width: min(100%, 430px); padding: max(27px, env(safe-area-inset-top)) 20px calc(108px + env(safe-area-inset-bottom)); }
+      .brand-mark { width: 42px; height: 49px; margin-bottom: 22px; }
+      h1 { margin-bottom: 27px; font-size: 27px; }
+      .result-card { padding: 23px 19px 20px; border-radius: 27px; }
+      .result-hero { grid-template-columns: 43% minmax(0, 1fr); gap: 15px; min-height: 150px; }
+      .verdict { min-height: 43px; padding-inline: 16px; font-size: 21px; }
+      .food-visual img { width: 97%; height: 91%; }
+      .status-step { gap: 5px; padding-inline: 5px; font-size: 11px; }
+      .status-dot { width: 11px; height: 11px; }
+      .reason-panel { padding: 18px 17px 17px; }
+      .match-options { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 370px) {
+      .page-shell { padding-inline: 15px; }
+      .hint-row { gap: 7px; margin-inline: 2px; }
+      .hint-chip { font-size: 11px; }
+      .result-card { padding-inline: 15px; }
+      .result-hero { grid-template-columns: 41% minmax(0, 1fr); gap: 11px; }
+      .verdict { padding-inline: 13px; font-size: 19px; }
+      .status-step { font-size: 10px; }
+      .action-row { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-shell">
+    <div class="page-content">
+      <img class="brand-mark" src="./assets/2026-09-17-滴答记水滴标识-from Codex.svg" alt="滴答记" />
+      <h1>这口适不适合我？</h1>
+
+      <form class="search-shell" id="foodSearchForm" role="search">
+        <span class="material-symbols-rounded" aria-hidden="true">search</span>
+        <input id="foodSearchInput" type="search" placeholder="输入想查询的食物" aria-label="输入食物名称" autocomplete="off" />
+        <button class="clear-button" id="clearSearch" type="button" aria-label="清除输入">
+          <span class="material-symbols-rounded" aria-hidden="true">close</span>
+        </button>
+        <button class="search-button" type="submit" aria-label="查询食物">
+          <span class="material-symbols-rounded" aria-hidden="true">search</span>
+        </button>
+      </form>
+
+      <div class="hint-row" aria-label="查询提示">
+        <span class="hint-chip"><span class="material-symbols-rounded" aria-hidden="true">search</span>别名和口语也能搜</span>
+        <span class="hint-chip"><span class="material-symbols-rounded" aria-hidden="true">soup_kitchen</span>也可以输入一道菜</span>
+      </div>
+
+      <section class="match-choice" id="matchChoice" aria-live="polite" hidden>
+        <p id="matchSummary"></p>
+        <div class="match-options" id="matchOptions"></div>
+      </section>
+
+      <section class="result-card" id="resultCard" aria-live="polite" aria-labelledby="resultName" hidden>
+        <div class="result-hero">
+          <div class="food-visual caution" id="foodVisual">
+            <svg class="state-doodle doodle-good" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M25 68l13 13 25-32M31 34l-7-12M51 28l4-14" /></svg>
+            <svg class="state-doodle doodle-caution" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M27 62l-13-7M34 42l-8-14M56 35l-1-16" /></svg>
+            <svg class="state-doodle doodle-hold" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M22 43l27 27M49 43L22 70M57 27l7-13" /></svg>
+            <img src="./assets/2026-09-17-冰咖啡抠图-v2-from Codex.png" alt="冰咖啡" />
+          </div>
+          <div class="result-copy">
+            <div class="result-name" id="resultName">冰咖啡</div>
+            <div class="verdict" id="verdict">谨慎尝试</div>
+            <p class="encouragement" id="encouragement">不是不能喝，先给身体一点余地。</p>
+            <p class="result-context">基于：缓解期 · 无活动症状</p>
+          </div>
+        </div>
+
+        <div class="status-scale" aria-label="建议等级">
+          <div class="status-step" data-tone="good"><span class="status-dot"></span>比较推荐</div>
+          <div class="status-step selected" data-tone="caution"><span class="status-dot"></span>谨慎尝试</div>
+          <div class="status-step" data-tone="hold"><span class="status-dot"></span>暂时不建议</div>
+        </div>
+
+        <section class="reason-panel" aria-labelledby="whyHeading">
+          <h2 class="section-heading" id="whyHeading"><span class="material-symbols-rounded" aria-hidden="true">lightbulb</span>为什么是这个建议</h2>
+          <ul class="reason-list" id="whyList"></ul>
+        </section>
+
+        <section class="try-panel" aria-labelledby="tryHeading">
+          <h2 class="section-heading" id="tryHeading"><span class="material-symbols-rounded" aria-hidden="true">restaurant</span>怎么试更稳妥</h2>
+          <ul class="try-list" id="howList"></ul>
+        </section>
+
+        <div class="action-row">
+          <a class="library-link" href="./food-library.html">我的食物库 <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></a>
+        </div>
+
+        <p class="disclaimer"><span class="material-symbols-rounded" aria-hidden="true">info</span>建议仅供日常参考，以医生建议指导为准</p>
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a class="nav-button" href="./dida-ji.html?tab=today" aria-label="今日"><b aria-hidden="true">🏠</b><span>今日</span></a>
+    <a class="nav-button" href="./dida-ji.html?tab=calendar" aria-label="日历"><b aria-hidden="true">📅</b><span>日历</span></a>
+    <a class="nav-button active" href="./dida-ji.html?tab=food" aria-label="食物" aria-current="page"><b aria-hidden="true">🥬</b><span>食物</span></a>
+    <a class="nav-button" href="./dida-ji.html?tab=export" aria-label="导出"><b aria-hidden="true">📤</b><span>导出</span></a>
+  </nav>
+
+  <div class="toast" id="toast" role="status"></div>
+
+  <script>
+    const ASSET_PATH = "./assets/";
+    const DATABASE_PATH = "./food-catalog.json";
+    const isQaMode = new URLSearchParams(location.search).has("qa");
+
+    const fallbackCatalog = [];
+
+    let foodCatalog = fallbackCatalog;
+    let currentFood = null;
+
+    const form = document.getElementById("foodSearchForm");
+    const input = document.getElementById("foodSearchInput");
+    const clearButton = document.getElementById("clearSearch");
+    const matchChoice = document.getElementById("matchChoice");
+    const matchSummary = document.getElementById("matchSummary");
+    const matchOptions = document.getElementById("matchOptions");
+    const resultCard = document.getElementById("resultCard");
+    const foodVisual = document.getElementById("foodVisual");
+    const resultName = document.getElementById("resultName");
+    const verdict = document.getElementById("verdict");
+    const encouragement = document.getElementById("encouragement");
+    const whyList = document.getElementById("whyList");
+    const howList = document.getElementById("howList");
+    const statusSteps = [...document.querySelectorAll(".status-step")];
+    const toast = document.getElementById("toast");
+
+    function normalize(value) {
+      return String(value || "")
+        .toLowerCase()
+        .replace(/我想吃|我想喝|想吃|想喝|可以吃吗|能不能吃|能吃吗|适合吗|请问|这个|今天/g, "")
+        .replace(/[\s·,，。.!！?？、_\-\/]/g, "")
+        .replace(/西红柿/g, "番茄")
+        .replace(/鸡蛋/g, "蛋");
+    }
+
+    function bigrams(value) {
+      const result = [];
+      for (let i = 0; i < value.length - 1; i += 1) result.push(value.slice(i, i + 2));
+      return result;
+    }
+
+    function characterScore(query, candidate) {
+      if (!query || !candidate) return 0;
+      if (query === candidate) return 120;
+      if (candidate.includes(query) || query.includes(candidate)) return 96 - Math.abs(candidate.length - query.length);
+      const qChars = [...new Set(query)];
+      const overlap = qChars.filter((char) => candidate.includes(char)).length / Math.max(qChars.length, candidate.length);
+      const qPairs = bigrams(query);
+      const cPairs = new Set(bigrams(candidate));
+      const pairOverlap = qPairs.length ? qPairs.filter((pair) => cPairs.has(pair)).length / qPairs.length : 0;
+      return overlap * 52 + pairOverlap * 36;
+    }
+
+    function foodTerms(food) {
+      return [food.name, ...(food.aliases || [])].map(normalize).filter(Boolean);
+    }
+
+    function resolveFood(value) {
+      const query = normalize(value);
+      if (!query) return { food: null, candidates: [] };
+
+      if (query === "梨") {
+        return {
+          food: null,
+          candidates: foodCatalog.filter((food) => /梨$/.test(food.name))
+        };
+      }
+
+      const exact = foodCatalog.filter((food) => foodTerms(food).includes(query));
+      if (exact.length === 1) return { food: exact[0], candidates: [] };
+      if (exact.length > 1) return { food: null, candidates: exact };
+
+      const contained = foodCatalog.filter((food) => foodTerms(food).some((term) => term.includes(query)));
+      if (contained.length > 1) return { food: null, candidates: contained.slice(0, 12) };
+      if (contained.length === 1 && query.length >= 2) return { food: contained[0], candidates: [] };
+      if (query.length < 2) return { food: null, candidates: [] };
+
+      const ranked = foodCatalog.map((food) => ({
+        food,
+        score: Math.max(...foodTerms(food).map((term) => characterScore(query, term)))
+      })).sort((a, b) => b.score - a.score);
+      const best = ranked[0];
+      const second = ranked[1];
+      const unambiguous = best && best.score >= 70 && (!second || best.score - second.score >= 10);
+      return { food: unambiguous ? best.food : null, candidates: [] };
+    }
+
+    function toSharedRecord(food, dateField) {
+      return {
+        id: food.id || "",
+        name: food.name,
+        [dateField]: new Date().toISOString(),
+        verdict: food.verdict,
+        tone: food.tone,
+        image: food.image || "",
+        reason: food.reason || food.encouragement || "按个人耐受调整份量。",
+        direct: true
+      };
+    }
+
+    function renderList(element, items) {
+      element.replaceChildren(...items.map((item) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        return li;
+      }));
+    }
+
+    function unknownFood(name) {
+      return {
+        name: name || "这道食物", aliases: [], image: "", verdict: "谨慎尝试", tone: "caution",
+        encouragement: "数据库里还没有它，先不做过度确定的判断。",
+        why: ["当前没有匹配到具体食材、做法和份量，所以无法给出更高把握的结论。", "克罗恩病缓解期也不等于所有食物都需要回避，先保留谨慎等级更合适。"],
+        how: ["补充更具体的名称或做法，例如“清蒸鲈鱼”而不是只写“鱼”。", "如果仍想尝试，选熟食、简单做法和小份量，并留意身体反应。"]
+      };
+    }
+
+    function renderFood(food, requestedName = "") {
+      currentFood = food || unknownFood(requestedName);
+      matchChoice.hidden = true;
+      resultCard.hidden = false;
+      resultName.textContent = currentFood.name;
+      verdict.textContent = currentFood.verdict;
+      verdict.className = `verdict ${currentFood.tone}`;
+      encouragement.textContent = currentFood.encouragement;
+      renderList(whyList, currentFood.why || []);
+      renderList(howList, currentFood.how || []);
+
+      foodVisual.className = `food-visual ${currentFood.tone}`;
+      const doodles = `
+        <svg class="state-doodle doodle-good" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M25 68l13 13 25-32M31 34l-7-12M51 28l4-14" /></svg>
+        <svg class="state-doodle doodle-caution" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M27 62l-13-7M34 42l-8-14M56 35l-1-16" /></svg>
+        <svg class="state-doodle doodle-hold" viewBox="0 0 180 180" aria-hidden="true"><path stroke="currentColor" d="M22 43l27 27M49 43L22 70M57 27l7-13" /></svg>`;
+      foodVisual.innerHTML = currentFood.image
+        ? `${doodles}<img src="${ASSET_PATH}${currentFood.image}" alt="${currentFood.name}" />`
+        : `${doodles}<span class="material-symbols-rounded fallback-food-icon" aria-hidden="true">restaurant</span>`;
+
+      statusSteps.forEach((step) => step.classList.toggle("selected", step.dataset.tone === currentFood.tone));
+    }
+
+    function renderCandidates(candidates, requestedName) {
+      currentFood = null;
+      resultCard.hidden = true;
+      matchSummary.textContent = `“${requestedName}”对应多个品种，请选择更具体的一项：`;
+      matchOptions.replaceChildren(...candidates.map((food) => {
+        const button = document.createElement("button");
+        button.className = "match-option";
+        button.type = "button";
+        button.dataset.foodId = food.id;
+        button.append(document.createTextNode(food.name));
+        const status = document.createElement("small");
+        status.textContent = food.verdict;
+        button.append(status);
+        return button;
+      }));
+      matchChoice.hidden = false;
+    }
+
+    function clearRenderedResult() {
+      currentFood = null;
+      resultCard.hidden = true;
+      matchChoice.hidden = true;
+    }
+
+    function addRecent(food) {
+      const record = toSharedRecord(food, "queriedAt");
+      let history = [];
+      try { history = JSON.parse(localStorage.getItem("didaFoodSearchHistoryV2") || "[]"); } catch (error) {}
+      history = [record, ...history.filter((item) => item && item.name !== record.name)].slice(0, 60);
+      localStorage.setItem("didaFoodSearchHistoryV2", JSON.stringify(history));
+      localStorage.setItem("didaFoodSearchHistoryV1", JSON.stringify(history.map((item) => item.name).slice(0, 12)));
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("show"), 1900);
+    }
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const requested = input.value.trim();
+      if (!requested) { input.focus(); showToast("先写下想查的食物吧"); return; }
+      await catalogReady;
+      const resolution = resolveFood(requested);
+      if (resolution.candidates.length) {
+        renderCandidates(resolution.candidates, requested);
+        showToast("请选择具体品种");
+        return;
+      }
+      renderFood(resolution.food, requested);
+      if (resolution.food && !isQaMode) addRecent(resolution.food);
+      if (!resolution.food) showToast("没有找到明确匹配，请换个更具体的名称");
+      else showToast(normalize(resolution.food.name) !== normalize(requested) ? `已按“${resolution.food.name}”查找` : "结果已更新");
+    });
+
+    input.addEventListener("input", clearRenderedResult);
+
+    clearButton.addEventListener("click", () => {
+      input.value = "";
+      clearRenderedResult();
+      input.focus();
+    });
+
+    matchOptions.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-food-id]");
+      if (!button) return;
+      const food = foodCatalog.find((item) => item.id === button.dataset.foodId);
+      if (!food) return;
+      input.value = food.name;
+      renderFood(food, food.name);
+      if (!isQaMode) addRecent(food);
+      showToast(`已选择“${food.name}”`);
+    });
+
+    async function loadDatabase() {
+      try {
+        const response = await fetch(encodeURI(DATABASE_PATH), { cache: "no-store" });
+        if (!response.ok) throw new Error(`database ${response.status}`);
+        const data = await response.json();
+        if (Array.isArray(data.foods) && data.foods.length) {
+          foodCatalog = data.foods;
+        }
+      } catch (error) {
+        console.info("使用页面内置的食物规则副本。", error.message);
+      }
+    }
+
+    clearRenderedResult();
+    const catalogReady = loadDatabase();
+  </script>
+</body>
+</html>

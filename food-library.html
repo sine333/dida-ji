@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f6fbff" />
+  <title>滴答记 · 我的食物库 · v0.5.3 255数据版</title>
+  <link rel="icon" href="./assets/2026-09-17-滴答记水滴标识-from Codex.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #0876ee;
+      --blue-deep: #133ba4;
+      --blue-soft: #e9f4ff;
+      --ink: #153c9e;
+      --muted: #6679b5;
+      --paper: #fffdf6;
+      --paper-deep: #f8f0dd;
+      --safe: #13a97a;
+      --safe-bg: #e3f7ec;
+      --care: #e99a04;
+      --care-bg: #fff3d3;
+      --avoid: #ef4053;
+      --avoid-bg: #ffe8e8;
+      --line: rgba(44, 91, 170, .16);
+      --shadow: 0 14px 34px rgba(64, 101, 151, .12);
+      --paper-shadow: 0 10px 22px rgba(134, 106, 55, .09);
+      color-scheme: light;
+      font-family: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: #f5faff; }
+    body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 14% 4%, rgba(130, 221, 255, 0.22), transparent 28%),
+        radial-gradient(circle at 86% 10%, rgba(255, 224, 164, 0.24), transparent 30%),
+        linear-gradient(180deg, #fcfeff 0%, #f8fbff 48%, #eef6ff 100%);
+    }
+
+    button { border: 0; font: inherit; }
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; }
+    h1, h2, h3, p { margin: 0; }
+    .material-symbols-rounded {
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      line-height: 1;
+    }
+
+    .app-shell {
+      position: relative;
+      width: min(100%, 430px);
+      min-height: 100vh;
+      margin: 0 auto;
+      overflow: hidden;
+      background: transparent;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.9), 0 28px 80px rgba(45, 95, 145, .18);
+    }
+
+    .app-shell::before {
+      content: "";
+      position: absolute;
+      z-index: 0;
+      top: -150px;
+      left: 50%;
+      width: min(520px, 100vw);
+      height: min(520px, 100vw);
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: repeating-radial-gradient(circle, rgba(61, 123, 218, 0.075) 0 1px, transparent 1px 40px);
+      pointer-events: none;
+    }
+
+    .app-content {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      padding: max(18px, env(safe-area-inset-top)) 16px calc(106px + env(safe-area-inset-bottom));
+    }
+
+    .back-button {
+      position: absolute;
+      top: max(18px, env(safe-area-inset-top));
+      left: 16px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      color: #2646ac;
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: 50%;
+      background: rgba(255,255,255,.82);
+      box-shadow: 0 9px 22px rgba(43, 91, 149, .14);
+      cursor: pointer;
+    }
+
+    .back-button:focus-visible,
+    .tab-button:focus-visible,
+    .primary-action:focus-visible {
+      outline: 3px solid rgba(17, 115, 238, .26);
+      outline-offset: 3px;
+    }
+
+    .brand {
+      padding-top: 4px;
+      text-align: center;
+    }
+
+    .brand-mark {
+      display: block;
+      width: 39px;
+      height: 45px;
+      margin: 0 auto 5px;
+      filter: drop-shadow(0 9px 14px rgba(37, 103, 213, .18));
+    }
+
+    h1 {
+      color: var(--blue);
+      font-size: 30px;
+      line-height: 1.12;
+      font-weight: 900;
+      letter-spacing: -.04em;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: #526db7;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 600;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+      margin: 17px 2px 12px;
+      padding: 5px;
+      border: 1px solid rgba(255,255,255,.92);
+      border-radius: 999px;
+      background: rgba(250,253,255,.78);
+      box-shadow: 0 10px 25px rgba(48, 98, 158, .12);
+    }
+
+    .tab-button {
+      min-height: 40px;
+      color: #2743a0;
+      border-radius: 999px;
+      background: transparent;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .tab-button.active {
+      color: #fff;
+      background: #1887f5;
+      box-shadow: 0 7px 17px rgba(21, 118, 236, .25);
+    }
+
+    .tab-panel[hidden] { display: none; }
+    .tab-panel { animation: panel-in 180ms ease both; }
+    @keyframes panel-in {
+      from { opacity: .35; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .progress-card {
+      display: grid;
+      align-items: center;
+      min-height: 64px;
+      padding: 11px 13px;
+      border: 1px solid rgba(255,255,255,.88);
+      border-radius: 20px;
+      background: rgba(247,252,255,.82);
+      box-shadow: var(--shadow);
+    }
+
+    .progress-card {
+      grid-template-columns: minmax(0, 1fr) 114px;
+      gap: 13px;
+    }
+
+    .progress-title {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      color: #2248a9;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .progress-count { font-size: 18px; letter-spacing: .02em; }
+    .progress-track {
+      height: 7px;
+      margin-top: 8px;
+      overflow: hidden;
+      border-radius: 99px;
+      background: #cfe2f4;
+    }
+
+    .progress-fill {
+      display: block;
+      width: 28%;
+      height: 100%;
+      border-radius: inherit;
+      background: #1686f3;
+    }
+
+    .progress-copy {
+      color: #6677ad;
+      font-size: 10px;
+      line-height: 1.45;
+      text-align: right;
+    }
+
+    .progress-copy strong {
+      display: block;
+      margin-bottom: 2px;
+      color: #4964b4;
+      font-size: 11px;
+    }
+
+    .album-section {
+      position: relative;
+      margin-top: 12px;
+      padding: 15px 12px 13px;
+      overflow: hidden;
+      border: 1px solid rgba(229, 210, 173, .72);
+      border-radius: 22px;
+      background: rgba(255, 252, 241, .9);
+      box-shadow: var(--paper-shadow);
+    }
+
+    .album-section.stateful { background: rgba(255, 249, 235, .91); }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 39px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-icon {
+      width: 39px;
+      height: 39px;
+      display: grid;
+      place-items: center;
+      color: #0d7c77;
+      border-radius: 50%;
+      background: #dff2e9;
+    }
+
+    .stateful .section-icon {
+      color: #ad6800;
+      background: #f7e9c9;
+    }
+
+    .section-title {
+      color: #107d84;
+      font-size: 19px;
+      line-height: 1.15;
+      font-weight: 900;
+    }
+
+    .stateful .section-title { color: #b96d00; }
+
+    .section-description {
+      margin-top: 3px;
+      color: #6577ae;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .section-count {
+      align-self: start;
+      padding-top: 3px;
+      color: #1e63da;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .stamp-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    .stamp-card {
+      position: relative;
+      min-width: 0;
+      min-height: 121px;
+      padding: 7px 5px 8px;
+      overflow: hidden;
+      border: 1px dashed #d7caa9;
+      border-radius: 12px;
+      background: rgba(255,255,255,.72);
+      box-shadow: inset 0 0 0 3px rgba(249,242,222,.7), 0 5px 12px rgba(125, 100, 54, .07);
+      text-align: center;
+    }
+
+    .stamp-card img {
+      width: 100%;
+      height: 78px;
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 5px 6px rgba(62, 71, 70, .12));
+    }
+
+    .stamp-card.untried img {
+      filter: grayscale(1) saturate(.1) opacity(.64) drop-shadow(0 4px 5px rgba(62, 71, 70, .08));
+    }
+
+    .food-name {
+      display: block;
+      margin-top: 1px;
+      overflow: hidden;
+      color: #1742a6;
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .try-label {
+      position: absolute;
+      right: 6px;
+      top: 65px;
+      padding: 2px 6px;
+      color: #6b6a67;
+      border: 1px solid rgba(135,130,117,.22);
+      border-radius: 999px;
+      background: rgba(245,243,235,.93);
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .mystery-card {
+      display: grid;
+      place-items: center;
+      align-content: center;
+      gap: 4px;
+      color: #aaa597;
+    }
+
+    .mystery-card .material-symbols-rounded { font-size: 38px; }
+    .mystery-card span:last-child { font-size: 10px; font-weight: 700; }
+
+    .empty-grid {
+      grid-column: 1 / -1;
+      margin: 2px 0;
+      padding: 22px 12px;
+      color: #7a87ad;
+      border: 1px dashed rgba(70, 106, 171, .24);
+      border-radius: 14px;
+      background: rgba(255,255,255,.52);
+      font-size: 11px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin: 12px 0 1px;
+      color: #6878ad;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #ff9d52;
+      box-shadow: 0 0 0 3px rgba(255,157,82,.14);
+    }
+
+    .legend-dot.gray {
+      background: #a9afb9;
+      box-shadow: 0 0 0 3px rgba(144,151,164,.14);
+    }
+
+    .recent-scope {
+      margin: 2px 4px 8px;
+      color: #8790a7;
+      font-size: 11px;
+      line-height: 1.5;
+      text-align: right;
+    }
+
+    .timeline {
+      position: relative;
+      margin-top: 0;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      top: 23px;
+      bottom: 26px;
+      left: 49px;
+      border-left: 2px dashed #9dc3ec;
+    }
+
+    .timeline.is-empty::before {
+      display: none;
+    }
+
+    .recent-empty {
+      display: grid;
+      place-items: center;
+      min-height: 180px;
+      padding: 28px 24px;
+      border: 1px dashed rgba(86, 130, 205, .24);
+      border-radius: 22px;
+      color: #8790a7;
+      background: rgba(255,255,255,.55);
+      font-size: 13px;
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .timeline-item {
+      position: relative;
+      display: grid;
+      grid-template-columns: 48px minmax(0, 1fr);
+      gap: 12px;
+      margin-bottom: 9px;
+    }
+
+    .timeline-time {
+      padding-top: 29px;
+      color: #5b70bb;
+      font-size: 10px;
+      line-height: 1.35;
+      text-align: left;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      z-index: 2;
+      top: 36px;
+      left: 43px;
+      width: 14px;
+      height: 14px;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      background: var(--status-color);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--status-color) 55%, white);
+    }
+
+    .recent-card {
+      display: grid;
+      grid-template-columns: 116px minmax(0, 1fr);
+      gap: 8px;
+      min-height: 131px;
+      padding: 10px 10px 10px 7px;
+      border: 1px solid rgba(255,255,255,.9);
+      border-radius: 21px;
+      background: var(--card-color);
+      box-shadow: 0 9px 22px rgba(47, 88, 139, .08);
+    }
+
+    .food-visual {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 19px;
+      background: var(--visual-color);
+    }
+
+    .food-visual .status-watermark {
+      position: absolute;
+      top: 7px;
+      left: 7px;
+      color: var(--status-color);
+      font-size: 47px;
+      opacity: .44;
+      font-variation-settings: "FILL" 0, "wght" 700, "GRAD" 0, "opsz" 48;
+    }
+
+    .food-visual img {
+      position: relative;
+      z-index: 1;
+      width: 108px;
+      height: 103px;
+      object-fit: contain;
+      filter: drop-shadow(0 7px 7px rgba(58, 65, 61, .13));
+    }
+
+    .fallback-recent-icon {
+      position: relative;
+      z-index: 1;
+      color: var(--status-color);
+      font-size: 44px;
+    }
+
+    .recent-copy {
+      min-width: 0;
+      align-self: center;
+    }
+
+    .recent-copy h3 {
+      color: #123e9f;
+      font-size: 17px;
+      line-height: 1.18;
+      font-weight: 900;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      padding: 5px 8px;
+      color: var(--status-color);
+      border-radius: 999px;
+      background: var(--pill-color);
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .status-pill .material-symbols-rounded {
+      font-size: 16px;
+      font-variation-settings: "FILL" 1, "wght" 650, "GRAD" 0, "opsz" 20;
+    }
+
+    .reason {
+      margin-top: 7px;
+      color: #5f73b5;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .safe-item {
+      --status-color: var(--safe);
+      --card-color: rgba(244, 253, 248, .94);
+      --visual-color: #e6f7ed;
+      --pill-color: #dff6e9;
+    }
+
+    .care-item {
+      --status-color: var(--care);
+      --card-color: rgba(255, 251, 241, .95);
+      --visual-color: #fff2d2;
+      --pill-color: #ffefc8;
+    }
+
+    .avoid-item {
+      --status-color: var(--avoid);
+      --card-color: rgba(255, 246, 246, .95);
+      --visual-color: #ffe5e4;
+      --pill-color: #ffe2e3;
+    }
+
+    .primary-action {
+      width: 100%;
+      min-height: 51px;
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      border-radius: 999px;
+      background: #1685f3;
+      box-shadow: 0 12px 24px rgba(18, 114, 233, .24);
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .primary-action .material-symbols-rounded {
+      margin-right: 5px;
+      font-size: 20px;
+      vertical-align: -4px;
+    }
+
+    .disclaimer {
+      margin-top: 12px;
+      color: #6d7db0;
+      font-size: 10px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .disclaimer .material-symbols-rounded {
+      margin-right: 3px;
+      font-size: 15px;
+      vertical-align: -3px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      z-index: 15;
+      left: 50%;
+      bottom: max(12px, env(safe-area-inset-bottom));
+      width: min(100% - 24px, 496px);
+      min-height: 62px;
+      padding: 8px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      transform: translateX(-50%);
+      border: 1px solid rgba(255, 255, 255, .72);
+      border-radius: 22px;
+      background: rgba(255, 255, 255, .88);
+      box-shadow: 0 14px 36px rgba(43, 108, 176, .16);
+      backdrop-filter: blur(18px);
+    }
+
+    .nav-button {
+      min-height: 46px;
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      color: var(--muted);
+      border-radius: 16px;
+      background: transparent;
+      font-size: 12px;
+      line-height: 1.2;
+    }
+
+    .nav-button b {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 500;
+    }
+
+    .nav-button.active {
+      color: var(--blue);
+      background: rgba(234, 246, 255, .92);
+    }
+
+    .nav-button:focus-visible {
+      outline: 3px solid rgba(17, 115, 238, .26);
+      outline-offset: 2px;
+    }
+
+    .toast {
+      position: fixed;
+      z-index: 20;
+      left: 50%;
+      bottom: calc(92px + env(safe-area-inset-bottom));
+      width: min(calc(100% - 36px), 390px);
+      padding: 12px 16px;
+      color: #fff;
+      border-radius: 14px;
+      background: rgba(22, 50, 105, .94);
+      box-shadow: 0 14px 30px rgba(31, 61, 113, .22);
+      font-size: 12px;
+      line-height: 1.45;
+      text-align: center;
+      transform: translate(-50%, 18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease, transform 160ms ease;
+    }
+
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    @media (min-width: 560px) {
+      body { padding: 26px 0; }
+      .app-shell {
+        min-height: calc(100vh - 52px);
+        border: 1px solid rgba(255,255,255,.95);
+        border-radius: 38px;
+      }
+      .app-content { min-height: calc(100vh - 52px); }
+    }
+
+    @media (max-width: 370px) {
+      .app-content { padding-left: 12px; padding-right: 12px; }
+      h1 { font-size: 27px; }
+      .stamp-grid { gap: 5px; }
+      .stamp-card { min-height: 112px; }
+      .stamp-card img { height: 70px; }
+      .recent-card { grid-template-columns: 104px minmax(0, 1fr); }
+      .food-visual img { width: 98px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app-shell" aria-label="我的食物库样式稿">
+    <div class="app-content">
+      <a class="back-button" href="./food-query.html" aria-label="返回食物查询">
+        <span class="material-symbols-rounded" aria-hidden="true">arrow_back_ios_new</span>
+      </a>
+
+      <header class="brand">
+        <img class="brand-mark" src="./assets/2026-09-17-滴答记水滴标识-from Codex.svg" alt="滴答记" />
+        <h1>我的食物库</h1>
+        <p class="subtitle">把吃过的安心，慢慢收成一本图鉴</p>
+      </header>
+
+      <nav class="tabs" aria-label="食物库视图">
+        <button class="tab-button active" type="button" role="tab" id="tab-experience" aria-controls="panel-experience" aria-selected="true" data-tab="experience">按经验看</button>
+        <button class="tab-button" type="button" role="tab" id="tab-recent" aria-controls="panel-recent" aria-selected="false" data-tab="recent">最近查过</button>
+      </nav>
+
+      <section class="tab-panel" id="panel-experience" role="tabpanel" aria-labelledby="tab-experience">
+        <div class="progress-card">
+          <div>
+            <div class="progress-title"><span>吃过 / 查过</span><span class="progress-count" id="progressCount">0 / 0</span></div>
+            <div class="progress-track" id="progressTrack" aria-label="已吃过 0 个，已查过 0 个"><span class="progress-fill" id="progressFill" style="width:0%"></span></div>
+          </div>
+          <p class="progress-copy"><strong>没有上限</strong>每次查询都进入食物库</p>
+        </div>
+
+        <section class="album-section" aria-labelledby="safe-title">
+          <div class="section-head">
+            <div class="section-icon"><span class="material-symbols-rounded" aria-hidden="true">eco</span></div>
+            <div>
+              <h2 class="section-title" id="safe-title">常吃也安心</h2>
+              <p class="section-description">彩色是吃过，灰色是查过但还没吃过。</p>
+            </div>
+            <span class="section-count" id="safeCount">0 / 0</span>
+          </div>
+
+          <div class="stamp-grid" id="safeGrid"><p class="empty-grid">还没有查询过“比较推荐”的食物。</p></div>
+        </section>
+
+        <section class="album-section stateful" aria-labelledby="stateful-title">
+          <div class="section-head">
+            <div class="section-icon"><span class="material-symbols-rounded" aria-hidden="true">soup_kitchen</span></div>
+            <div>
+              <h2 class="section-title" id="stateful-title">看状态再选</h2>
+              <p class="section-description">彩色是吃过，灰色是查过但还没吃过。</p>
+            </div>
+            <span class="section-count" id="statefulCount">0 / 0</span>
+          </div>
+
+          <div class="stamp-grid" id="statefulGrid"><p class="empty-grid">还没有查询过“谨慎尝试”或“暂时不建议”的食物。</p></div>
+        </section>
+
+        <div class="legend" aria-label="食物状态图例">
+          <span class="legend-item"><span class="legend-dot"></span>彩色＝吃过</span>
+          <span class="legend-item"><span class="legend-dot gray"></span>灰色＝可吃但还没吃过</span>
+        </div>
+      </section>
+
+      <section class="tab-panel" id="panel-recent" role="tabpanel" aria-labelledby="tab-recent" hidden>
+        <p class="recent-scope">仅显示近 7 天查询记录</p>
+
+        <div class="timeline is-empty" id="recentTimeline" aria-label="最近查询记录">
+          <p class="recent-empty">近 7 天还没有查过食物。<br />可以从下方继续查询。</p>
+        </div>
+
+        <a class="primary-action" href="./food-query.html">
+          <span class="material-symbols-rounded" aria-hidden="true">edit</span>继续查询新食物
+        </a>
+        <p class="disclaimer"><span class="material-symbols-rounded" aria-hidden="true">info</span>建议仅供日常参考，以医生建议指导为准</p>
+      </section>
+    </div>
+  </main>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a class="nav-button" href="./dida-ji.html?tab=today" aria-label="今日"><b aria-hidden="true">🏠</b><span>今日</span></a>
+    <a class="nav-button" href="./dida-ji.html?tab=calendar" aria-label="日历"><b aria-hidden="true">📅</b><span>日历</span></a>
+    <a class="nav-button active" href="./dida-ji.html?tab=food" aria-label="食物" aria-current="page"><b aria-hidden="true">🥬</b><span>食物</span></a>
+    <a class="nav-button" href="./dida-ji.html?tab=export" aria-label="导出"><b aria-hidden="true">📤</b><span>导出</span></a>
+  </nav>
+
+  <script>
+    const tabButtons = [...document.querySelectorAll('[data-tab]')];
+    const panels = {
+      experience: document.querySelector('#panel-experience'),
+      recent: document.querySelector('#panel-recent')
+    };
+
+    tabButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const next = button.dataset.tab;
+        tabButtons.forEach((item) => {
+          const selected = item === button;
+          item.classList.toggle('active', selected);
+          item.setAttribute('aria-selected', String(selected));
+        });
+        Object.entries(panels).forEach(([name, panel]) => {
+          panel.hidden = name !== next;
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    });
+
+    const ASSET_PATH = './assets/';
+    const DATABASE_PATH = './food-catalog.json';
+    const safeGrid = document.querySelector('#safeGrid');
+    const statefulGrid = document.querySelector('#statefulGrid');
+    const safeCount = document.querySelector('#safeCount');
+    const statefulCount = document.querySelector('#statefulCount');
+    const recentTimeline = document.querySelector('#recentTimeline');
+    const progressCount = document.querySelector('#progressCount');
+    const progressTrack = document.querySelector('#progressTrack');
+    const progressFill = document.querySelector('#progressFill');
+
+    let catalog = {};
+
+    function readJson(key, fallback) {
+      try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+      catch (error) { return fallback; }
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    function normalizeRecord(record) {
+      if (!record || !record.name) return null;
+      const known = catalog[record.id] || catalog[record.name] || {};
+      return {
+        ...known,
+        ...record,
+        id: known.id || record.id || '',
+        name: known.name || record.name,
+        tone: record.tone || known.tone || 'caution',
+        verdict: record.verdict || known.verdict || '谨慎尝试',
+        image: record.image || known.image || '',
+        reason: record.reason || known.reason || '先从小份量开始，并留意身体反应。'
+      };
+    }
+
+    function isKnownCatalogRecord(record) {
+      return Boolean(record && (catalog[record.id] || catalog[record.name]));
+    }
+
+    function foodTile(food, eaten) {
+      const name = escapeHtml(food.name);
+      const image = escapeHtml(food.image);
+      const media = image
+        ? `<img src="${ASSET_PATH}${image}" alt="${name}${eaten ? '' : '，尚未吃过'}" />`
+        : `<span class="material-symbols-rounded" aria-hidden="true">restaurant</span>`;
+      return `<article class="stamp-card${eaten ? '' : ' untried'}">
+        ${media}
+        ${eaten ? '' : '<span class="try-label">待尝试</span>'}
+        <span class="food-name">${name}</span>
+      </article>`;
+    }
+
+    function uniqueByFood(items) {
+      const seen = new Set();
+      return items.filter((item) => {
+        const key = item.id || item.name;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    }
+
+    function getEatenRecords() {
+      return readJson('didaFoodMealRecordsV1', [])
+        .filter((item) => item && item.direct !== false)
+        .map(normalizeRecord)
+        .filter(Boolean);
+    }
+
+    function getQueriedRecords() {
+      return readJson('didaFoodSearchHistoryV2', [])
+        .filter(isKnownCatalogRecord)
+        .map(normalizeRecord)
+        .filter(Boolean);
+    }
+
+    function renderGroup(grid, count, eatenItems, libraryItems, emptyText) {
+      const eatenKeys = new Set(eatenItems.map((item) => item.id || item.name));
+      const items = libraryItems.map((food) => ({
+        food,
+        eaten: eatenKeys.has(food.id || food.name)
+      }));
+      const cards = items.map((item) => foodTile(item.food, item.eaten));
+      grid.innerHTML = cards.length
+        ? cards.join('')
+        : `<p class="empty-grid">${escapeHtml(emptyText)}</p>`;
+      const eatenCount = items.filter((item) => item.eaten).length;
+      count.textContent = `${eatenCount} / ${items.length}`;
+    }
+
+    function renderExperience() {
+      const eaten = uniqueByFood(getEatenRecords());
+      const queried = uniqueByFood(getQueriedRecords());
+      // 直接记录为“吃过”的食物也属于食物库，合并进分母以避免出现 1 / 0。
+      const libraryItems = uniqueByFood([...queried, ...eaten]);
+      const eatenKeys = new Set(eaten.map((item) => item.id || item.name));
+      const eatenCount = libraryItems.filter((item) => eatenKeys.has(item.id || item.name)).length;
+      const total = libraryItems.length;
+      const progressPercent = total ? Math.round(eatenCount / total * 100) : 0;
+      progressCount.textContent = `${eatenCount} / ${total}`;
+      progressTrack.setAttribute('aria-label', `已吃过 ${eatenCount} 个，已查过或直接记录 ${total} 个`);
+      progressFill.style.width = `${progressPercent}%`;
+      renderGroup(
+        safeGrid,
+        safeCount,
+        eaten.filter((item) => item.tone === 'good'),
+        libraryItems.filter((item) => item.tone === 'good'),
+        '还没有查询过“比较推荐”的食物。'
+      );
+      renderGroup(
+        statefulGrid,
+        statefulCount,
+        eaten.filter((item) => item.tone !== 'good'),
+        libraryItems.filter((item) => item.tone !== 'good'),
+        '还没有查询过“谨慎尝试”或“暂时不建议”的食物。'
+      );
+    }
+
+    function startOfDay(value) {
+      const date = new Date(value);
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
+    function formatTimelineTime(value) {
+      const date = new Date(value);
+      const today = startOfDay(new Date());
+      const target = startOfDay(date);
+      const dayDiff = Math.round((today - target) / 86400000);
+      const dayLabel = dayDiff === 0 ? '今天' : dayDiff === 1 ? '昨天' : `${date.getMonth() + 1}月${date.getDate()}日`;
+      const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+      return { dayLabel, time };
+    }
+
+    function recentCard(record) {
+      const status = record.tone === 'good'
+        ? { itemClass: 'safe-item', watermark: 'check', pill: 'check_circle' }
+        : record.tone === 'hold'
+          ? { itemClass: 'avoid-item', watermark: 'close', pill: 'cancel' }
+          : { itemClass: 'care-item', watermark: 'priority_high', pill: 'error' };
+      const when = formatTimelineTime(record.queriedAt);
+      const name = escapeHtml(record.name);
+      const image = escapeHtml(record.image);
+      const imageMarkup = image
+        ? `<img src="${ASSET_PATH}${image}" alt="${name}" />`
+        : '<span class="material-symbols-rounded fallback-recent-icon" aria-hidden="true">restaurant</span>';
+      return `<article class="timeline-item ${status.itemClass}">
+        <time class="timeline-time" datetime="${escapeHtml(record.queriedAt)}">${when.dayLabel}<br />${when.time}</time>
+        <span class="timeline-dot" aria-hidden="true"></span>
+        <div class="recent-card">
+          <div class="food-visual">
+            <span class="material-symbols-rounded status-watermark" aria-hidden="true">${status.watermark}</span>
+            ${imageMarkup}
+          </div>
+          <div class="recent-copy">
+            <h3>${name}</h3>
+            <span class="status-pill"><span class="material-symbols-rounded" aria-hidden="true">${status.pill}</span>${escapeHtml(record.verdict)}</span>
+            <p class="reason">${escapeHtml(record.reason)}</p>
+          </div>
+        </div>
+      </article>`;
+    }
+
+    function renderRecent() {
+      const cutoff = Date.now() - 7 * 86400000;
+      const history = readJson('didaFoodSearchHistoryV2', [])
+        .filter(isKnownCatalogRecord)
+        .map(normalizeRecord)
+        .filter((item) => item && Number.isFinite(new Date(item.queriedAt).getTime()) && new Date(item.queriedAt).getTime() >= cutoff)
+        .sort((a, b) => new Date(b.queriedAt) - new Date(a.queriedAt));
+      recentTimeline.classList.toggle('is-empty', history.length === 0);
+      recentTimeline.innerHTML = history.length
+        ? history.map(recentCard).join('')
+        : '<p class="recent-empty">近 7 天还没有查过食物。<br />可以从下方继续查询。</p>';
+    }
+
+    function refreshLibrary() {
+      renderExperience();
+      renderRecent();
+    }
+
+    async function loadCatalog() {
+      try {
+        const response = await fetch(encodeURI(DATABASE_PATH), { cache: 'no-store' });
+        if (!response.ok) throw new Error(`database ${response.status}`);
+        const data = await response.json();
+        const foods = data.foods || [];
+        catalog = Object.fromEntries(foods.flatMap((food) => [
+          [food.id, food],
+          [food.name, food],
+          ...(food.aliases || []).map((alias) => [alias, food]),
+          ...(food.legacyIds || []).map((id) => [id, food])
+        ]));
+      } catch (error) {
+        console.info('食物目录暂时不可用。', error.message);
+      }
+      refreshLibrary();
+    }
+
+    window.addEventListener('pageshow', refreshLibrary);
+    window.addEventListener('storage', refreshLibrary);
+    loadCatalog();
+  </script>
+</body>
+</html>

@@ -888,7 +888,7 @@
       min-height: 62px;
       padding: 8px;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 6px;
       border-radius: 22px;
       background: rgba(255, 255, 255, 0.88);
@@ -1396,6 +1396,44 @@
         transition-duration: 1ms !important;
       }
     }
+
+    .food-hub-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .food-hub-intro {
+      padding: 22px;
+      border-radius: 22px;
+      color: #23483a;
+      background: linear-gradient(145deg, rgba(236, 249, 241, 0.98), rgba(255, 251, 236, 0.98));
+      border: 1px solid rgba(47, 120, 89, 0.15);
+      box-shadow: var(--glow);
+    }
+
+    .food-hub-intro h2 { margin: 4px 0 8px; font-size: 24px; }
+    .food-hub-intro p { margin: 0; color: #60736a; }
+    .food-hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .food-hub-card {
+      min-height: 150px;
+      padding: 18px;
+      border-radius: 20px;
+      color: inherit;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(99, 179, 237, 0.2);
+      box-shadow: var(--glow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .food-hub-card b { font-size: 34px; }
+    .food-hub-card strong { display: block; margin-bottom: 4px; font-size: 17px; }
+    .food-hub-card span { color: var(--muted); font-size: 13px; }
+    .food-hub-note { padding: 14px 16px; border-radius: 16px; color: var(--muted); background: rgba(255,255,255,.66); }
+    @media (max-width: 380px) { .food-hub-grid { grid-template-columns: 1fr; } }
+
   </style>
 </head>
 <body>
@@ -1447,6 +1485,9 @@
     const AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 180;
     const SUPABASE_URL = "https://xbtztpxzgepkgbrpiodj.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_uVmdn4Sn_o0v6_gLoHY-bw_dPURE-bw";
+    const FOOD_CATALOG_PATH = "./food-catalog.json";
+    const FOOD_QUERY_PATH = "./food-query.html";
+    const FOOD_LIBRARY_PATH = "./food-library.html";
     function getTodayKey() {
       return toDateKey(new Date());
     }
@@ -1567,7 +1608,9 @@
     let syncPanelOpen = false;
     let loginEmailDraft = localStorage.getItem("dida-ji-login-email") || "";
     let loginCodeDraft = "";
-    let activeTab = "today";
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    let activeTab = ["today", "calendar", "food", "export"].includes(requestedTab) ? requestedTab : "today";
+    let foodEntityCatalog = [];
     let selectedMeal = "早餐";
     let calendarCursor = startOfMonth(new Date());
     let selectedDate = getTodayKey();
@@ -1606,9 +1649,22 @@
     async function boot() {
       captureAuthRedirect();
       normalizeState();
+      await loadFoodEntityCatalog();
       render();
       if (authSession) await syncNow(false);
       window.setTimeout(showPendingMilestone, 360);
+    }
+
+    async function loadFoodEntityCatalog() {
+      try {
+        const response = await fetch(encodeURI(FOOD_CATALOG_PATH), { cache: "no-store" });
+        if (!response.ok) throw new Error(`food catalog ${response.status}`);
+        const data = await response.json();
+        foodEntityCatalog = Array.isArray(data.foods) ? data.foods : [];
+      } catch (error) {
+        foodEntityCatalog = [];
+        console.info("食物目录暂时不可用。", error.message);
+      }
     }
 
     function loadState() {
@@ -1714,6 +1770,7 @@
           ${renderSyncCard()}
           ${activeTab === "today" ? renderToday(stats) : ""}
           ${activeTab === "calendar" ? renderCalendar() : ""}
+          ${activeTab === "food" ? renderFoodHub() : ""}
           ${activeTab === "export" ? renderExport() : ""}
         </section>
         ${activeTab === "today" ? `<button class="fab ripple-target" type="button" data-action="open-record"><span>＋</span> 记一笔</button>` : ""}
@@ -1982,6 +2039,30 @@
       `;
     }
 
+    function readFoodLibraryArray(key) {
+      try { return JSON.parse(localStorage.getItem(key) || "[]"); }
+      catch (error) { return []; }
+    }
+
+    function renderFoodHub() {
+      const queried = new Set(readFoodLibraryArray("didaFoodSearchHistoryV2").map((item) => item && (item.id || item.name)).filter(Boolean)).size;
+      const eaten = new Set(readFoodLibraryArray("didaFoodMealRecordsV1").map((item) => item && (item.id || item.name)).filter(Boolean)).size;
+      return `
+        <section class="food-hub-panel">
+          <div class="food-hub-intro">
+            <p class="date-kicker">缓解期食物工具</p>
+            <h2>查询 ${foodEntityCatalog.length || 248} 种常见食物</h2>
+            <p>先看是否推荐，再看脂肪、膳食纤维和 FODMAP。没有可披露数据的指标不会显示。</p>
+          </div>
+          <div class="food-hub-grid">
+            <a class="food-hub-card" href="${FOOD_QUERY_PATH}"><b aria-hidden="true">🔎</b><div><strong>查询食物</strong><span>输入名称，查看缓解期建议</span></div></a>
+            <a class="food-hub-card" href="${FOOD_LIBRARY_PATH}"><b aria-hidden="true">📚</b><div><strong>我的食物库</strong><span>已查 ${queried} · 已吃 ${eaten}</span></div></a>
+          </div>
+          <p class="food-hub-note">直接查询会进入灰色待尝试卡；直接记录吃过后才点亮。菜品里的配料不会自动出现。</p>
+        </section>
+      `;
+    }
+
     function renderExport() {
       const range = getExportRange();
       const records = getRecordsInRange(range.start, range.end);
@@ -2020,6 +2101,7 @@
       const items = [
         { key: "today", icon: "🏠", label: "今日" },
         { key: "calendar", icon: "📅", label: "日历" },
+        { key: "food", icon: "🥬", label: "食物" },
         { key: "export", icon: "📤", label: "导出" }
       ];
 
@@ -2041,6 +2123,10 @@
         if (action === "switch-tab") {
           node.addEventListener("click", () => {
             activeTab = node.dataset.tab;
+            const nextUrl = new URL(window.location.href);
+            if (activeTab === "today") nextUrl.searchParams.delete("tab");
+            else nextUrl.searchParams.set("tab", activeTab);
+            window.history.replaceState(null, "", nextUrl);
             render();
           });
         }
@@ -2192,12 +2278,50 @@
       };
 
       state.records.push(record);
+      syncFoodLibraryFromMealRecord(record);
       saveState();
       closeRecordSheet();
       render();
       showEncouragement(content);
       queueSync();
       window.setTimeout(() => checkAndShowMilestone(), 620);
+    }
+
+    function normalizeFoodToken(value) {
+      return String(value || "").trim().toLowerCase().replace(/[\s。.!！?？]/g, "");
+    }
+
+    function directFoodMatches(content) {
+      if (!foodEntityCatalog.length) return [];
+      const tokens = String(content || "").split(/[,，、;；+＋\n]/).map(normalizeFoodToken).filter(Boolean);
+      return foodEntityCatalog.filter((food) => {
+        const names = [food.name, ...(food.aliases || [])].map(normalizeFoodToken);
+        return tokens.some((token) => names.includes(token));
+      });
+    }
+
+    function syncFoodLibraryFromMealRecord(record) {
+      const matches = directFoodMatches(record.content);
+      if (!matches.length) return;
+      const current = readFoodLibraryArray("didaFoodMealRecordsV1");
+      const additions = matches.map((food) => ({
+        id: food.id,
+        name: food.name,
+        recordId: record.id,
+        eatenAt: record.createdAt,
+        date: record.date,
+        verdict: food.verdict,
+        tone: food.tone,
+        image: food.image,
+        reason: food.reason,
+        direct: true
+      }));
+      localStorage.setItem("didaFoodMealRecordsV1", JSON.stringify([...additions, ...current].slice(0, 500)));
+    }
+
+    function removeFoodLibraryMealRecord(recordId) {
+      const current = readFoodLibraryArray("didaFoodMealRecordsV1");
+      localStorage.setItem("didaFoodMealRecordsV1", JSON.stringify(current.filter((item) => item && item.recordId !== recordId)));
     }
 
     function deleteRecord(recordId) {
@@ -2210,6 +2334,7 @@
       state.deletedRecords = state.deletedRecords || {};
       state.deletedRecords[recordId] = new Date().toISOString();
       state.records = state.records.filter((item) => item.id !== recordId);
+      removeFoodLibraryMealRecord(recordId);
       saveState();
       showToast("这条记录已删除");
       render();

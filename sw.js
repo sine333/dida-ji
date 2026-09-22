@@ -1,10 +1,22 @@
-const CACHE_NAME = "dida-ji-cache-v19";
+const CACHE_NAME = "dida-ji-cache-v29-unlimited-library";
 const APP_ASSETS = [
   "./",
   "./index.html",
   "./dida-ji.html",
+  "./food-query.html",
+  "./food-library.html",
+  "./food-catalog.json",
+  "./2026-09-17-食物评判逻辑说明-from%20Codex.md",
   "./manifest.webmanifest",
   "./icon.svg",
+  "./assets/2026-09-17-滴答记水滴标识-from%20Codex.svg",
+  "./assets/2026-09-17-冰咖啡抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-番茄炒蛋抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-蒸蛋抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-清汤面抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-牛油果抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-日式饭团抠图-v2-from%20Codex.png",
+  "./assets/2026-09-17-麻辣火锅抠图-v2-from%20Codex.png",
   "./assets/2026-06-26-bowel-icon-hard-pebbles-from-Codex.png",
   "./assets/2026-06-26-bowel-icon-lumpy-hard-from-Codex.png",
   "./assets/2026-06-26-bowel-icon-smooth-formed-from-Codex.png",
